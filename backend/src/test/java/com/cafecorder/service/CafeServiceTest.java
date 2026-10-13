@@ -5,11 +5,13 @@ import com.cafecorder.dto.VisitRequest;
 import com.cafecorder.dto.VisitResponse;
 import com.cafecorder.dto.VisitStats;
 import com.cafecorder.exception.VisitNotFoundException;
+import com.cafecorder.model.AppUser;
 import com.cafecorder.model.Cafe;
 import com.cafecorder.model.NoiseLevel;
 import com.cafecorder.model.Seating;
 import com.cafecorder.model.StudyCafe;
 import com.cafecorder.repository.CafeRepository;
+import com.cafecorder.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -31,11 +33,18 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class CafeServiceTest {
 
+    private static final long ME = 1L;
+
     @Mock
     private CafeRepository repository;
 
+    @Mock
+    private UserRepository users;
+
     @InjectMocks
     private CafeService service;
+
+    private final AppUser me = new AppUser("me@example.com", "Me", "hash");
 
     private VisitRequest regularVisit() {
         return new VisitRequest("  Sam James  ", " Harbord ", LocalDate.of(2026, 9, 10), "Cortado",
@@ -48,23 +57,26 @@ class CafeServiceTest {
     }
 
     @Test
-    void createStudySessionSavesAStudyCafe() {
+    void createStudySessionSavesAStudyCafeForTheUser() {
+        when(users.getReferenceById(ME)).thenReturn(me);
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        VisitResponse result = service.create(studyVisit());
+        VisitResponse result = service.create(ME, studyVisit());
 
         ArgumentCaptor<Cafe> saved = ArgumentCaptor.forClass(Cafe.class);
         verify(repository).save(saved.capture());
         assertThat(saved.getValue()).isInstanceOf(StudyCafe.class);
+        assertThat(saved.getValue().getUser()).isSameAs(me);
         assertThat(result.studySpot()).isTrue();
         assertThat(result.seating()).isEqualTo(Seating.LIMITED);
     }
 
     @Test
     void createRegularVisitTrimsText() {
+        when(users.getReferenceById(ME)).thenReturn(me);
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        VisitResponse result = service.create(regularVisit());
+        VisitResponse result = service.create(ME, regularVisit());
 
         assertThat(result.name()).isEqualTo("Sam James");
         assertThat(result.neighbourhood()).isEqualTo("Harbord");
@@ -74,22 +86,23 @@ class CafeServiceTest {
 
     @Test
     void listFiltersByNeighbourhoodOnlyWhenGiven() {
-        when(repository.findAll(SortOption.RATING.toSort())).thenReturn(List.of());
-        when(repository.findByNeighbourhoodIgnoreCase("Annex", SortOption.RATING.toSort())).thenReturn(List.of());
+        when(repository.findByUserId(ME, SortOption.RATING.toSort())).thenReturn(List.of());
+        when(repository.findByUserIdAndNeighbourhoodIgnoreCase(ME, "Annex", SortOption.RATING.toSort()))
+                .thenReturn(List.of());
 
-        service.list("  ", SortOption.RATING);
-        service.list(" Annex ", SortOption.RATING);
+        service.list(ME, "  ", SortOption.RATING);
+        service.list(ME, " Annex ", SortOption.RATING);
 
-        verify(repository).findAll(SortOption.RATING.toSort());
-        verify(repository).findByNeighbourhoodIgnoreCase("Annex", SortOption.RATING.toSort());
+        verify(repository).findByUserId(ME, SortOption.RATING.toSort());
+        verify(repository).findByUserIdAndNeighbourhoodIgnoreCase(ME, "Annex", SortOption.RATING.toSort());
     }
 
     @Test
     void updateSameTypeEditsInPlace() {
         Cafe existing = new Cafe("Old", "Annex", LocalDate.of(2026, 1, 1), "Tea", BigDecimal.ONE, 2);
-        when(repository.findById(5L)).thenReturn(Optional.of(existing));
+        when(repository.findByIdAndUserId(5L, ME)).thenReturn(Optional.of(existing));
 
-        VisitResponse result = service.update(5L, regularVisit());
+        VisitResponse result = service.update(ME, 5L, regularVisit());
 
         assertThat(result.name()).isEqualTo("Sam James");
         assertThat(result.rating()).isEqualTo(4);
@@ -100,10 +113,11 @@ class CafeServiceTest {
     @Test
     void updateSwitchingToStudyReplacesTheRow() {
         Cafe existing = new Cafe("Old", "Annex", LocalDate.of(2026, 1, 1), "Tea", BigDecimal.ONE, 2);
-        when(repository.findById(5L)).thenReturn(Optional.of(existing));
+        when(repository.findByIdAndUserId(5L, ME)).thenReturn(Optional.of(existing));
+        when(users.getReferenceById(ME)).thenReturn(me);
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        VisitResponse result = service.update(5L, studyVisit());
+        VisitResponse result = service.update(ME, 5L, studyVisit());
 
         verify(repository).delete(existing);
         verify(repository).save(any(StudyCafe.class));
@@ -111,23 +125,26 @@ class CafeServiceTest {
     }
 
     @Test
-    void missingVisitThrowsNotFound() {
-        when(repository.findById(42L)).thenReturn(Optional.empty());
+    void cannotReadOrChangeSomeoneElsesVisit() {
+        // the lookup includes the owner, so another user's visit 42 is simply not found
+        when(repository.findByIdAndUserId(42L, ME)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.get(42L)).isInstanceOf(VisitNotFoundException.class);
-        assertThatThrownBy(() -> service.delete(42L)).isInstanceOf(VisitNotFoundException.class);
+        assertThatThrownBy(() -> service.get(ME, 42L)).isInstanceOf(VisitNotFoundException.class);
+        assertThatThrownBy(() -> service.update(ME, 42L, regularVisit())).isInstanceOf(VisitNotFoundException.class);
+        assertThatThrownBy(() -> service.delete(ME, 42L)).isInstanceOf(VisitNotFoundException.class);
         verify(repository, never()).delete(any());
     }
 
     @Test
     void statsForAnEmptyLogbook() {
-        when(repository.count()).thenReturn(0L);
-        when(repository.countUniqueCafes()).thenReturn(0L);
-        when(repository.totalSpent()).thenReturn(null);
-        when(repository.averageRating()).thenReturn(null);
+        when(repository.countByUserId(ME)).thenReturn(0L);
+        when(repository.countUniqueCafes(ME)).thenReturn(0L);
+        when(repository.totalSpent(ME)).thenReturn(null);
+        when(repository.averageRating(ME)).thenReturn(null);
 
-        VisitStats stats = service.stats();
+        VisitStats stats = service.stats(ME);
 
+        assertThat(stats.visits()).isZero();
         assertThat(stats.totalSpent()).isEqualByComparingTo("0");
         assertThat(stats.averageRating()).isNull();
     }

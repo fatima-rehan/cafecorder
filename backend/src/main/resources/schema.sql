@@ -17,3 +17,16 @@ CREATE TABLE IF NOT EXISTS cafe_visits (
     laptop_policy VARCHAR(100),
     noise_level   VARCHAR(10)   CHECK (noise_level IN ('QUIET', 'MODERATE', 'LOUD'))
 );
+
+-- Accounts (Phase 7)
+CREATE TABLE IF NOT EXISTS app_users (
+    id            BIGSERIAL    PRIMARY KEY,
+    email         VARCHAR(254) NOT NULL UNIQUE,
+    display_name  VARCHAR(60)  NOT NULL,
+    password_hash VARCHAR(100) NOT NULL,
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+-- Each visit belongs to a user. Nullable so rows from before accounts still load.
+ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES app_users (id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_cafe_visits_user ON cafe_visits (user_id);

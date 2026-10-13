@@ -43,6 +43,11 @@ public class Cafe {
     @Column(nullable = false)
     private int rating;
 
+    // whose logbook this is. LAZY: the user row is only loaded if something actually reads it.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private AppUser user;
+
     protected Cafe() {
         // JPA needs a no-arg constructor
     }
@@ -71,6 +76,7 @@ public class Cafe {
     public String getOrder() { return order; }
     public BigDecimal getPrice() { return price; }
     public int getRating() { return rating; }
+    public AppUser getUser() { return user; }
 
     public void setName(String name) { this.name = name; }
     public void setNeighbourhood(String neighbourhood) { this.neighbourhood = neighbourhood; }
@@ -78,6 +84,7 @@ public class Cafe {
     public void setOrder(String order) { this.order = order; }
     public void setPrice(BigDecimal price) { this.price = price; }
     public void setRating(int rating) { this.rating = rating; }
+    public void setUser(AppUser user) { this.user = user; }
 
     @Override
     public String toString() {

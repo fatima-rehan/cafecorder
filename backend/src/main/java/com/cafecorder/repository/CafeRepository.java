@@ -4,30 +4,41 @@ import com.cafecorder.model.Cafe;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 // Spring Data writes the implementation. Queries on Cafe also return StudyCafe rows, since a StudyCafe is a Cafe.
+// Every query here takes the owner's id: there is no "find any visit" path for the logbook.
 public interface CafeRepository extends JpaRepository<Cafe, Long> {
 
-    List<Cafe> findByNeighbourhoodIgnoreCase(String neighbourhood, Sort sort);
+    List<Cafe> findByUserId(Long userId, Sort sort);
 
-    @Query("select distinct c.neighbourhood from Cafe c order by c.neighbourhood")
-    List<String> findNeighbourhoods();
+    List<Cafe> findByUserIdAndNeighbourhoodIgnoreCase(Long userId, String neighbourhood, Sort sort);
+
+    // id AND owner: someone else's visit simply isn't found, so it's a 404 rather than a 403
+    // (a 403 would confirm the id exists)
+    Optional<Cafe> findByIdAndUserId(Long id, Long userId);
+
+    long countByUserId(Long userId);
+
+    @Query("select distinct c.neighbourhood from Cafe c where c.user.id = :userId order by c.neighbourhood")
+    List<String> findNeighbourhoods(@Param("userId") Long userId);
 
     // null when there are no visits
-    @Query("select sum(c.price) from Cafe c")
-    BigDecimal totalSpent();
+    @Query("select sum(c.price) from Cafe c where c.user.id = :userId")
+    BigDecimal totalSpent(@Param("userId") Long userId);
 
     // unrated (0) visits are left out so they don't drag the average down; null when nothing is rated
-    @Query("select avg(c.rating) from Cafe c where c.rating > 0")
-    Double averageRating();
+    @Query("select avg(c.rating) from Cafe c where c.user.id = :userId and c.rating > 0")
+    Double averageRating(@Param("userId") Long userId);
 
     // same cafe = same name + neighbourhood, ignoring case (like the old equals())
     @Query(value = """
             select count(*) from (
-              select distinct lower(name), lower(neighbourhood) from cafe_visits
+              select distinct lower(name), lower(neighbourhood) from cafe_visits where user_id = :userId
             ) t""", nativeQuery = true)
-    long countUniqueCafes();
+    long countUniqueCafes(@Param("userId") Long userId);
 }
