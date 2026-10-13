@@ -3,6 +3,7 @@ import { api } from '../api.js'
 import GalleryGrid from './GalleryGrid.jsx'
 import StatsBar from './StatsBar.jsx'
 import VisitCard from './VisitCard.jsx'
+import VisitDetail from './VisitDetail.jsx'
 import VisitForm from './VisitForm.jsx'
 
 const SORTS = [
@@ -36,6 +37,7 @@ export default function MyVisits({ user, composing, onComposeDone }) {
   const [sort, setSort] = useState('RECENT')
   const [view, setView] = useState(savedView)
   const [editing, setEditing] = useState(null) // null = closed, {} = new visit, a visit = editing it
+  const [viewing, setViewing] = useState(null) // visit open in the detail view
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -79,6 +81,11 @@ export default function MyVisits({ user, composing, onComposeDone }) {
     }
   }
 
+  function edit(visit) {
+    setViewing(null)
+    setEditing(visit)
+  }
+
   // errors are thrown back to VisitForm so it can show them under the fields
   async function save(payload) {
     if (editing?.id) await api.visits.update(editing.id, payload)
@@ -90,6 +97,7 @@ export default function MyVisits({ user, composing, onComposeDone }) {
   async function remove(visit) {
     try {
       await api.visits.remove(visit.id)
+      setViewing(null)
       load()
     } catch (err) {
       if (err.status !== 401) setError(err.message)
@@ -137,14 +145,16 @@ export default function MyVisits({ user, composing, onComposeDone }) {
       )}
 
       {view === 'gallery' ? (
-        <GalleryGrid visits={visits} />
+        <GalleryGrid visits={visits} onOpen={setViewing} />
       ) : (
         <section className="cards">
           {visits.map((v) => (
-            <VisitCard key={v.id} visit={v} onEdit={setEditing} onDelete={remove} />
+            <VisitCard key={v.id} visit={v} onOpen={setViewing} onEdit={edit} onDelete={remove} />
           ))}
         </section>
       )}
+
+      {viewing && <VisitDetail visit={viewing} onEdit={edit} onDelete={remove} onClose={() => setViewing(null)} />}
 
       {editing && (
         <VisitForm
