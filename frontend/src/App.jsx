@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, hasToken, setToken, setUnauthorizedHandler } from './api.js'
 import AuthPage from './components/AuthPage.jsx'
 import Landing from './components/Landing.jsx'
+import MyVisits from './components/MyVisits.jsx'
 
 // No router library: three screens and two tabs are just state
 export default function App() {
@@ -125,7 +126,7 @@ export default function App() {
 
       <main className="content" onClick={() => menuOpen && setMenuOpen(false)}>
         {showMine ? (
-          <p className="empty">{user.displayName}'s logbook goes here.</p>
+          <MyVisits user={user} />
         ) : (
           <p className="empty">The public feed goes here.</p>
         )}
