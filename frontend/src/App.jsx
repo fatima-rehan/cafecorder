@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, hasToken, setToken, setUnauthorizedHandler } from './api.js'
 import AuthPage from './components/AuthPage.jsx'
+import Explore from './components/Explore.jsx'
 import Landing from './components/Landing.jsx'
 import MyVisits from './components/MyVisits.jsx'
 
@@ -139,7 +140,7 @@ export default function App() {
         {showMine ? (
           <MyVisits user={user} composing={composing} onComposeDone={composeDone} />
         ) : (
-          <p className="empty">The public feed goes here.</p>
+          <Explore signedIn={Boolean(user)} onSignUp={() => showAuth('signup')} />
         )}
       </main>
     </div>
