@@ -30,3 +30,8 @@ CREATE TABLE IF NOT EXISTS app_users (
 -- Each visit belongs to a user. Nullable so rows from before accounts still load.
 ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES app_users (id) ON DELETE CASCADE;
 CREATE INDEX IF NOT EXISTS idx_cafe_visits_user ON cafe_visits (user_id);
+
+-- Photos and the public feed (Phase 8)
+ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS shared BOOLEAN NOT NULL DEFAULT TRUE;
+CREATE INDEX IF NOT EXISTS idx_cafe_visits_feed ON cafe_visits (shared, visit_date DESC);

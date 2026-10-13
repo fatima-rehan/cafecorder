@@ -47,7 +47,7 @@ class CafeControllerTest {
 
     private final VisitResponse pilot = new VisitResponse(1L, "Pilot Coffee", "Leslieville",
             LocalDate.of(2026, 9, 1), "Oat flat white", new BigDecimal("5.75"), 5, true,
-            true, true, Seating.GOOD, "No restrictions", NoiseLevel.MODERATE);
+            true, true, Seating.GOOD, "No restrictions", NoiseLevel.MODERATE, null, true);
 
     @Test
     void visitsNeedAToken() throws Exception {
@@ -110,6 +110,18 @@ class CafeControllerTest {
                         """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.studyDetailsComplete").value("study sessions need seating and noise level"));
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void createRejectsAPhotoThatIsNotAnImage() throws Exception {
+        mvc.perform(post("/api/visits").with(user1()).contentType(MediaType.APPLICATION_JSON).content("""
+                        {"name":"Sam James","neighbourhood":"Harbord","visitDate":"2026-09-01",
+                         "order":"Cortado","price":4.50,"rating":4,"photoUrl":"javascript:alert(1)"}
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.photoUrl").exists());
 
         verifyNoInteractions(service);
     }

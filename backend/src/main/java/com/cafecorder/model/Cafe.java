@@ -48,6 +48,14 @@ public class Cafe {
     @JoinColumn(name = "user_id")
     private AppUser user;
 
+    // an https:// image link, or a small uploaded photo stored as a data URL
+    @Column(name = "photo_url", columnDefinition = "text")
+    private String photoUrl;
+
+    // shown on the public feed when true
+    @Column(nullable = false)
+    private boolean shared = true;
+
     protected Cafe() {
         // JPA needs a no-arg constructor
     }
@@ -77,6 +85,8 @@ public class Cafe {
     public BigDecimal getPrice() { return price; }
     public int getRating() { return rating; }
     public AppUser getUser() { return user; }
+    public String getPhotoUrl() { return photoUrl; }
+    public boolean isShared() { return shared; }
 
     public void setName(String name) { this.name = name; }
     public void setNeighbourhood(String neighbourhood) { this.neighbourhood = neighbourhood; }
@@ -85,6 +95,8 @@ public class Cafe {
     public void setPrice(BigDecimal price) { this.price = price; }
     public void setRating(int rating) { this.rating = rating; }
     public void setUser(AppUser user) { this.user = user; }
+    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
+    public void setShared(boolean shared) { this.shared = shared; }
 
     @Override
     public String toString() {

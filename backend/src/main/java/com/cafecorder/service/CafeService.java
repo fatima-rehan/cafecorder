@@ -89,6 +89,8 @@ public class CafeService {
         Cafe cafe = newCafe(r);
         // a reference (just the id), so no extra SELECT for the user
         cafe.setUser(users.getReferenceById(userId));
+        cafe.setPhotoUrl(blankToNull(r.photoUrl()));
+        cafe.setShared(r.isShareable());
         return cafe;
     }
 
@@ -109,6 +111,12 @@ public class CafeService {
         cafe.setOrder(r.order().trim());
         cafe.setPrice(r.price());
         cafe.setRating(r.rating());
+        cafe.setPhotoUrl(blankToNull(r.photoUrl()));
+        cafe.setShared(r.isShareable());
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s;
     }
 
     private void applyStudyFields(StudyCafe study, VisitRequest r) {

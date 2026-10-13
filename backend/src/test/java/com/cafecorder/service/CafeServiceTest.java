@@ -48,12 +48,13 @@ class CafeServiceTest {
 
     private VisitRequest regularVisit() {
         return new VisitRequest("  Sam James  ", " Harbord ", LocalDate.of(2026, 9, 10), "Cortado",
-                new BigDecimal("4.50"), 4, false, null, null, null, null, null);
+                new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, false);
     }
 
     private VisitRequest studyVisit() {
         return new VisitRequest("Sam James", "Harbord", LocalDate.of(2026, 9, 10), "Cortado",
-                new BigDecimal("4.50"), 4, true, true, false, Seating.LIMITED, "Before 5pm", NoiseLevel.QUIET);
+                new BigDecimal("4.50"), 4, true, true, false, Seating.LIMITED, "Before 5pm", NoiseLevel.QUIET,
+                "https://example.com/cortado.jpg", null);
     }
 
     @Test
@@ -69,6 +70,8 @@ class CafeServiceTest {
         assertThat(saved.getValue().getUser()).isSameAs(me);
         assertThat(result.studySpot()).isTrue();
         assertThat(result.seating()).isEqualTo(Seating.LIMITED);
+        assertThat(result.photoUrl()).isEqualTo("https://example.com/cortado.jpg");
+        assertThat(result.shared()).as("shared defaults to true when not sent").isTrue();
     }
 
     @Test
@@ -82,6 +85,7 @@ class CafeServiceTest {
         assertThat(result.neighbourhood()).isEqualTo("Harbord");
         assertThat(result.studySpot()).isFalse();
         assertThat(result.seating()).isNull();
+        assertThat(result.shared()).isFalse();
     }
 
     @Test

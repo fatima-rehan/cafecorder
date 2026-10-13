@@ -1,7 +1,9 @@
 package com.cafecorder.repository;
 
 import com.cafecorder.model.Cafe;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -41,4 +43,36 @@ public interface CafeRepository extends JpaRepository<Cafe, Long> {
               select distinct lower(name), lower(neighbourhood) from cafe_visits where user_id = :userId
             ) t""", nativeQuery = true)
     long countUniqueCafes(@Param("userId") Long userId);
+
+    // ---- public feed ----
+
+    // N+1 problem: the feed shows each author's name, and user is LAZY, so without this
+    // 30 visits = 1 query + 30 more for the users. The entity graph joins users into the same query.
+    @EntityGraph(attributePaths = "user")
+    List<Cafe> findBySharedTrue(Pageable pageable);
+
+    // Native SQL because JPQL has no array_agg/FILTER. Groups visits into cafes (name + neighbourhood,
+    // ignoring case), ranks by average rating then visit count, and picks the best-rated photo as the cover.
+    @Query(value = """
+            select min(c.name)          as "name",
+                   min(c.neighbourhood) as "neighbourhood",
+                   avg(c.rating)        as "averageRating",
+                   count(*)             as "visits",
+                   (array_agg(c.photo_url order by c.rating desc, c.visit_date desc)
+                      filter (where c.photo_url is not null))[1] as "coverPhoto"
+            from cafe_visits c
+            where c.shared = true and c.rating > 0
+            group by lower(c.name), lower(c.neighbourhood)
+            order by avg(c.rating) desc, count(*) desc
+            limit :limit""", nativeQuery = true)
+    List<TopCafeView> findTopCafes(@Param("limit") int limit);
+
+    // Spring Data fills this in from the column aliases above
+    interface TopCafeView {
+        String getName();
+        String getNeighbourhood();
+        BigDecimal getAverageRating();
+        Long getVisits();
+        String getCoverPhoto();
+    }
 }

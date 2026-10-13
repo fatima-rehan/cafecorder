@@ -25,8 +25,20 @@ public record VisitRequest(
         Boolean hasOutlets,
         Seating seating,
         @Size(max = 100) String laptopPolicy,
-        NoiseLevel noiseLevel
+        NoiseLevel noiseLevel,
+        // only https links or jpeg/png/webp uploads, so nothing like "javascript:..." ends up in an <img src>.
+        // ~3 MB cap; the frontend resizes uploads to 1200px JPEG, which is usually well under that.
+        @Size(max = 3_000_000, message = "photo is too large")
+        @Pattern(regexp = "^(https://|data:image/(jpeg|png|webp);base64,).*",
+                message = "must be an https:// image link or a JPEG, PNG or WebP upload")
+        String photoUrl,
+        // null counts as true, so visits are shared unless you opt out
+        Boolean shared
 ) {
+    public boolean isShareable() {
+        return !Boolean.FALSE.equals(shared);
+    }
+
     public boolean study() {
         return Boolean.TRUE.equals(studySession);
     }

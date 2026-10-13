@@ -3,8 +3,12 @@ package com.cafecorder.controller;
 import com.cafecorder.config.SecurityConfig;
 import com.cafecorder.dto.AuthDtos.AuthResponse;
 import com.cafecorder.dto.AuthDtos.UserResponse;
+import com.cafecorder.dto.FeedDtos.FeedItem;
+import com.cafecorder.dto.FeedDtos.TopCafe;
 import com.cafecorder.exception.EmailTakenException;
 import com.cafecorder.service.AuthService;
+import com.cafecorder.service.FeedService;
+import com.cafecorder.service.FeedService.FeedSort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -14,6 +18,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDate;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -25,8 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Sign up and log in work without a token; /me doesn't
-@WebMvcTest(AuthController.class)
+// Sign up, log in and the public feed work without a token; /me doesn't
+@WebMvcTest({AuthController.class, FeedController.class})
 @Import(SecurityConfig.class)
 @TestPropertySource(properties = "app.jwt.secret=test-secret-that-is-definitely-32-bytes-long")
 class PublicEndpointsTest {
@@ -36,6 +43,30 @@ class PublicEndpointsTest {
 
     @MockitoBean
     private AuthService auth;
+
+    @MockitoBean
+    private FeedService feed;
+
+    @Test
+    void feedPhotosAreOpenToEveryoneAndHaveNoPrice() throws Exception {
+        when(feed.photos(FeedSort.TOP)).thenReturn(List.of(new FeedItem(3L, "18Feet", "Queen West",
+                LocalDate.of(2026, 9, 26), "Dalgona matcha", 5, null, true, "Fatima")));
+
+        mvc.perform(get("/api/feed/photos").param("sort", "TOP"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].author").value("Fatima"))
+                .andExpect(jsonPath("$[0].price").doesNotExist());
+    }
+
+    @Test
+    void topCafesAreOpenToEveryone() throws Exception {
+        when(feed.topCafes()).thenReturn(List.of(new TopCafe("18Feet", "Queen West", 4.8, 5, null)));
+
+        mvc.perform(get("/api/feed/top-cafes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].averageRating").value(4.8))
+                .andExpect(jsonPath("$[0].visits").value(5));
+    }
 
     @Test
     void registerReturns201WithAToken() throws Exception {
