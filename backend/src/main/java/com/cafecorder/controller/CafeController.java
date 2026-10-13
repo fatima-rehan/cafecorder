@@ -5,6 +5,7 @@ import com.cafecorder.dto.VisitRequest;
 import com.cafecorder.dto.VisitResponse;
 import com.cafecorder.dto.VisitStats;
 import com.cafecorder.service.CafeService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -47,7 +48,7 @@ public class CafeController {
 
     // 201 Created plus a Location header pointing at the new visit
     @PostMapping
-    public ResponseEntity<VisitResponse> create(@RequestBody VisitRequest request) {
+    public ResponseEntity<VisitResponse> create(@Valid @RequestBody VisitRequest request) {
         VisitResponse created = service.create(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}").buildAndExpand(created.id()).toUri();
@@ -55,7 +56,7 @@ public class CafeController {
     }
 
     @PutMapping("/{id}")
-    public VisitResponse update(@PathVariable Long id, @RequestBody VisitRequest request) {
+    public VisitResponse update(@PathVariable Long id, @Valid @RequestBody VisitRequest request) {
         return service.update(id, request);
     }
 

@@ -2,27 +2,39 @@ package com.cafecorder.dto;
 
 import com.cafecorder.model.NoiseLevel;
 import com.cafecorder.model.Seating;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-// What the frontend sends to create or update a visit. Replaces the old Scanner prompts.
+/*
+ * What the frontend sends to create or update a visit. Replaces the old Scanner prompts:
+ * the while-loop input checks are now annotations, checked by @Valid in the controller.
+ */
 public record VisitRequest(
-        String name,
-        String neighbourhood,
-        LocalDate visitDate,
-        String order,
-        BigDecimal price,
-        Integer rating,
+        @NotBlank @Size(max = 120) String name,
+        @NotBlank @Size(max = 120) String neighbourhood,
+        @NotNull @PastOrPresent LocalDate visitDate,
+        @NotBlank @Size(max = 200) String order,
+        // matches NUMERIC(7,2): up to 99999.99
+        @NotNull @DecimalMin("0.00") @Digits(integer = 5, fraction = 2) BigDecimal price,
+        @NotNull @Min(0) @Max(5) Integer rating,
         // Boolean, not boolean: Jackson 3 rejects a missing primitive, and missing should just mean "no"
         Boolean studySession,
         Boolean hasWifi,
         Boolean hasOutlets,
         Seating seating,
-        String laptopPolicy,
+        @Size(max = 100) String laptopPolicy,
         NoiseLevel noiseLevel
 ) {
     public boolean study() {
         return Boolean.TRUE.equals(studySession);
+    }
+
+    // Cross-field rule: a study session needs seating and noise level, a regular visit doesn't.
+    // Shows up in the errors map as "studyDetailsComplete".
+    @AssertTrue(message = "study sessions need seating and noise level")
+    public boolean isStudyDetailsComplete() {
+        return !study() || (seating != null && noiseLevel != null);
     }
 }
