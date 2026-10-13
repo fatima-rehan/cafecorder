@@ -3,6 +3,7 @@ import { api } from '../api.js'
 import GalleryGrid from './GalleryGrid.jsx'
 import StatsBar from './StatsBar.jsx'
 import VisitCard from './VisitCard.jsx'
+import VisitForm from './VisitForm.jsx'
 
 const SORTS = [
   { value: 'RECENT', label: 'Recent' },
@@ -27,13 +28,14 @@ function savedView() {
 }
 
 // The signed-in user's own logbook
-export default function MyVisits({ user }) {
+export default function MyVisits({ user, composing, onComposeDone }) {
   const [visits, setVisits] = useState([])
   const [stats, setStats] = useState(null)
   const [neighbourhoods, setNeighbourhoods] = useState([])
   const [neighbourhood, setNeighbourhood] = useState('')
   const [sort, setSort] = useState('RECENT')
   const [view, setView] = useState(savedView)
+  const [editing, setEditing] = useState(null) // null = closed, {} = new visit, a visit = editing it
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -60,6 +62,14 @@ export default function MyVisits({ user }) {
     load()
   }, [load])
 
+  // the "Log a visit" button lives in the top bar (App), so it signals through props
+  useEffect(() => {
+    if (composing) {
+      setEditing({})
+      onComposeDone()
+    }
+  }, [composing, onComposeDone])
+
   function changeView(next) {
     setView(next)
     try {
@@ -67,6 +77,14 @@ export default function MyVisits({ user }) {
     } catch {
       // not saved, still works for now
     }
+  }
+
+  // errors are thrown back to VisitForm so it can show them under the fields
+  async function save(payload) {
+    if (editing?.id) await api.visits.update(editing.id, payload)
+    else await api.visits.create(payload)
+    setEditing(null)
+    load()
   }
 
   async function remove(visit) {
@@ -114,6 +132,7 @@ export default function MyVisits({ user }) {
       {!loading && !error && visits.length === 0 && (
         <div className="empty">
           <p>No visits yet{neighbourhood && ` in ${neighbourhood}`}.</p>
+          <button className="btn btn-primary" onClick={() => setEditing({})}>Log your first cup</button>
         </div>
       )}
 
@@ -122,9 +141,18 @@ export default function MyVisits({ user }) {
       ) : (
         <section className="cards">
           {visits.map((v) => (
-            <VisitCard key={v.id} visit={v} onDelete={remove} />
+            <VisitCard key={v.id} visit={v} onEdit={setEditing} onDelete={remove} />
           ))}
         </section>
+      )}
+
+      {editing && (
+        <VisitForm
+          visit={editing.id ? editing : null}
+          neighbourhoods={neighbourhoods}
+          onSave={save}
+          onClose={() => setEditing(null)}
+        />
       )}
     </>
   )

@@ -11,6 +11,7 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [checking, setChecking] = useState(hasToken()) // checking a saved token on load
   const [menuOpen, setMenuOpen] = useState(false)
+  const [composing, setComposing] = useState(false)
   const [authMode, setAuthMode] = useState('login')
 
   const showAuth = useCallback((mode = 'login') => {
@@ -41,6 +42,8 @@ export default function App() {
       .catch(() => {})
       .finally(() => setChecking(false))
   }, [])
+
+  const composeDone = useCallback(() => setComposing(false), [])
 
   function enter() {
     if (user || checking) {
@@ -99,25 +102,33 @@ export default function App() {
 
         <div className="topbar-actions">
           {user ? (
-            <div className="account">
-              <button
-                className="avatar"
-                onClick={() => setMenuOpen((o) => !o)}
-                aria-expanded={menuOpen}
-                aria-label={`Account menu for ${user.displayName}`}
-              >
-                {user.displayName.charAt(0).toUpperCase()}
-              </button>
-              {menuOpen && (
-                <div className="account-menu" role="menu">
-                  <p>
-                    <strong>{user.displayName}</strong>
-                    <span className="muted">{user.email}</span>
-                  </p>
-                  <button className="btn btn-ghost" role="menuitem" onClick={logOut}>Log out</button>
-                </div>
+            <>
+              {showMine && (
+                <button className="btn btn-primary" onClick={() => setComposing(true)}>
+                  <span className="hide-narrow">Log a visit</span>
+                  <span className="show-narrow" aria-hidden="true">+ Log</span>
+                </button>
               )}
-            </div>
+              <div className="account">
+                <button
+                  className="avatar"
+                  onClick={() => setMenuOpen((o) => !o)}
+                  aria-expanded={menuOpen}
+                  aria-label={`Account menu for ${user.displayName}`}
+                >
+                  {user.displayName.charAt(0).toUpperCase()}
+                </button>
+                {menuOpen && (
+                  <div className="account-menu" role="menu">
+                    <p>
+                      <strong>{user.displayName}</strong>
+                      <span className="muted">{user.email}</span>
+                    </p>
+                    <button className="btn btn-ghost" role="menuitem" onClick={logOut}>Log out</button>
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             !checking && <button className="btn btn-primary" onClick={() => showAuth()}>Log in</button>
           )}
@@ -126,7 +137,7 @@ export default function App() {
 
       <main className="content" onClick={() => menuOpen && setMenuOpen(false)}>
         {showMine ? (
-          <MyVisits user={user} />
+          <MyVisits user={user} composing={composing} onComposeDone={composeDone} />
         ) : (
           <p className="empty">The public feed goes here.</p>
         )}
