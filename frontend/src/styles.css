@@ -38,6 +38,87 @@ body { color-scheme: light; }
 .btn-ghost.danger:hover { color: var(--danger); }
 .btn:disabled { opacity: 0.6; cursor: default; }
 
+/* ---------- landing ---------- */
+.landing {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.2rem, 4vh, 2.4rem);
+  padding-block: 1.5rem;
+  overflow: hidden;
+  background: var(--cream);
+  transition: opacity 0.3s ease 0.7s;
+}
+
+.landing-copy { text-align: center; padding-inline: 16px; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.75rem; color: var(--muted); margin: 0 0 0.4rem; }
+.landing h1 { font-size: clamp(2.4rem, 7vw, 4.2rem); letter-spacing: -0.02em; text-wrap: balance; }
+.tagline { margin: 0.3rem 0 0; color: var(--muted); font-size: 1.05rem; }
+
+/* the scene between the title and the button */
+.scene { position: relative; width: 100%; height: clamp(300px, 56vh, 560px); }
+@media (max-width: 700px) {
+  .scene { height: clamp(360px, 62svh, 640px); }
+  .landing { gap: 1rem; }
+}
+.scene-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+
+.enter-btn { box-shadow: 0 6px 18px rgba(43, 26, 18, 0.25); }
+
+.receipt text { font-family: 'DM Mono', ui-monospace, monospace; }
+.packet { font-family: 'DM Sans', system-ui, sans-serif; font-size: 20px; font-weight: 600; letter-spacing: 0.2em; fill: #8a5a3b; }
+
+/* entering: dive into the coffee */
+.scene { transition: transform 0.9s ease-in; transform-origin: 50% 50%; }
+.landing-copy, .enter-btn { transition: opacity 0.35s ease; }
+.landing.entering { opacity: 0; }
+.landing.entering .scene { transform: scale(7); z-index: 1; }
+.landing.entering .landing-copy, .landing.entering .enter-btn { opacity: 0; }
+
+/* stirring */
+.spin { transform-box: view-box; animation: spin linear infinite; }
+.spin-slow { animation-duration: 7s; }
+.spin-slower { animation-duration: 11s; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* steam: wisps drift up, stretch and fade */
+.steam path {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  opacity: 0;
+  animation: steam 4.8s ease-out infinite;
+}
+@keyframes steam {
+  0% { transform: translateY(20px) scaleY(0.7); opacity: 0; }
+  30% { opacity: 0.7; }
+  100% { transform: translateY(-80px) scaleY(1.25) translateX(8px); opacity: 0; }
+}
+
+/* sugar: each grain circles the centre while sinking inward and dissolving */
+.orbit { transform-box: view-box; animation: orbit 5s linear infinite; }
+.granule { transform-box: view-box; animation: dissolve 5s ease-in infinite; }
+@keyframes orbit {
+  from { transform: rotate(var(--start)); }
+  to { transform: rotate(calc(var(--start) + 540deg)); }
+}
+@keyframes dissolve {
+  0% { transform: translateX(var(--r)) scale(1); opacity: 0; }
+  10% { opacity: 0.95; }
+  70% { opacity: 0.7; }
+  100% { transform: translateX(6px) scale(0.2); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin, .orbit, .granule, .steam path { animation: none; }
+  .granule { opacity: 0; }
+  .steam path { opacity: 0.3; }
+  .scene { transition: none; }
+  .landing.entering .scene { transform: none; }
+}
+
 /* ---------- app ---------- */
 .app { min-height: 100vh; animation: fadeIn 0.5s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } }
@@ -100,7 +181,7 @@ select, input {
 select:focus, input:focus { outline: 2px solid var(--crema); outline-offset: 1px; }
 
 .segmented { display: inline-flex; background: #efe4d6; border-radius: 999px; padding: 3px; }
-.segmented button { border: 0; background: none; padding: 0.45rem 1rem; border-radius: 999px; cursor: pointer; color: var(--muted); }
+.segmented button { border: 0; background: none; padding: 0.45rem 1rem; border-radius: 999px; cursor: pointer; color: var(--muted); white-space: nowrap; }
 .segmented button.active { background: var(--paper); color: var(--espresso); box-shadow: 0 1px 3px rgba(43, 26, 18, 0.12); }
 
 .banner { background: #f7e3dc; color: var(--danger); padding: 0.8rem 1rem; border-radius: 10px; }
