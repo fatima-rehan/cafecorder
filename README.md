@@ -2,6 +2,8 @@
 
 A logbook for Toronto cafe visits. Log what you ordered, what you paid and how you'd rate it, mark study sessions (wifi, outlets, seating, noise), add a photo, and share your favourites on a public feed.
 
+Visit @ https://cafecorder.vercel.app/
+
 ## Features
 
 - **Your logbook:** add, edit and delete visits. Filter by neighbourhood and sort by newest or rating.
