@@ -1,9 +1,12 @@
 package com.cafecorder.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
  * One cafe visit, same idea as the original Cafe class.
@@ -56,6 +59,13 @@ public class Cafe {
     @Column(nullable = false)
     private boolean shared = true;
 
+    // Loaded lazily; @BatchSize loads the extras for up to 50 visits in one query instead of one per visit
+    @ElementCollection
+    @CollectionTable(name = "visit_extras", joinColumns = @JoinColumn(name = "visit_id"))
+    @OrderColumn(name = "item_index")
+    @BatchSize(size = 50)
+    private List<Extra> extras = new ArrayList<>();
+
     protected Cafe() {
         // JPA needs a no-arg constructor
     }
@@ -87,6 +97,12 @@ public class Cafe {
     public AppUser getUser() { return user; }
     public String getPhotoUrl() { return photoUrl; }
     public boolean isShared() { return shared; }
+    public List<Extra> getExtras() { return extras; }
+
+    // drink plus extras
+    public BigDecimal getTotal() {
+        return extras.stream().map(Extra::getPrice).reduce(price, BigDecimal::add);
+    }
 
     public void setName(String name) { this.name = name; }
     public void setNeighbourhood(String neighbourhood) { this.neighbourhood = neighbourhood; }
@@ -97,6 +113,12 @@ public class Cafe {
     public void setUser(AppUser user) { this.user = user; }
     public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
     public void setShared(boolean shared) { this.shared = shared; }
+
+    // edits the list Hibernate is tracking instead of swapping it out
+    public void setExtras(List<Extra> extras) {
+        this.extras.clear();
+        this.extras.addAll(extras);
+    }
 
     @Override
     public String toString() {

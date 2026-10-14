@@ -19,6 +19,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -48,14 +49,16 @@ class PublicEndpointsTest {
     private FeedService feed;
 
     @Test
-    void feedPhotosAreOpenToEveryoneAndHaveNoPrice() throws Exception {
+    void feedPhotosAreOpenToEveryoneAndShowPriceButNoEmail() throws Exception {
         when(feed.photos(FeedSort.TOP)).thenReturn(List.of(new FeedItem(3L, "18Feet", "Queen West",
-                LocalDate.of(2026, 9, 26), "Dalgona matcha", 5, null, true, "Fatima")));
+                LocalDate.of(2026, 9, 26), "Dalgona matcha", new BigDecimal("6.50"), List.of(),
+                new BigDecimal("6.50"), 5, null, true, "Fatima")));
 
         mvc.perform(get("/api/feed/photos").param("sort", "TOP"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].author").value("Fatima"))
-                .andExpect(jsonPath("$[0].price").doesNotExist());
+                .andExpect(jsonPath("$[0].price").value(6.50))
+                .andExpect(jsonPath("$[0].email").doesNotExist());
     }
 
     @Test

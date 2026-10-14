@@ -9,7 +9,6 @@ import VisitForm from './VisitForm.jsx'
 const SORTS = [
   { value: 'RECENT', label: 'Recent' },
   { value: 'RATING', label: 'Top rated' },
-  { value: 'PRICE', label: 'Priciest' },
 ]
 
 const VIEWS = [

@@ -7,6 +7,7 @@ import com.cafecorder.model.StudyCafe;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 // What the API sends back. A DTO, not the entity, so the JSON shape doesn't change if the table does.
 public record VisitResponse(
@@ -24,17 +25,21 @@ public record VisitResponse(
         String laptopPolicy,
         NoiseLevel noiseLevel,
         String photoUrl,
-        boolean shared
+        boolean shared,
+        List<ExtraItem> extras,
+        // drink plus extras
+        BigDecimal total
 ) {
     public static VisitResponse from(Cafe cafe) {
+        List<ExtraItem> extras = ExtraItem.from(cafe.getExtras());
         if (cafe instanceof StudyCafe s) {
             return new VisitResponse(s.getId(), s.getName(), s.getNeighbourhood(), s.getVisitDate(), s.getOrder(),
                     s.getPrice(), s.getRating(), true,
                     s.getHasWifi(), s.getHasOutlets(), s.getSeating(), s.getLaptopPolicy(), s.getNoiseLevel(),
-                    s.getPhotoUrl(), s.isShared());
+                    s.getPhotoUrl(), s.isShared(), extras, s.getTotal());
         }
         return new VisitResponse(cafe.getId(), cafe.getName(), cafe.getNeighbourhood(), cafe.getVisitDate(),
                 cafe.getOrder(), cafe.getPrice(), cafe.getRating(), false,
-                null, null, null, null, null, cafe.getPhotoUrl(), cafe.isShared());
+                null, null, null, null, null, cafe.getPhotoUrl(), cafe.isShared(), extras, cafe.getTotal());
     }
 }

@@ -1,5 +1,6 @@
 package com.cafecorder.service;
 
+import com.cafecorder.dto.ExtraItem;
 import com.cafecorder.dto.SortOption;
 import com.cafecorder.dto.VisitRequest;
 import com.cafecorder.dto.VisitResponse;
@@ -48,13 +49,44 @@ class CafeServiceTest {
 
     private VisitRequest regularVisit() {
         return new VisitRequest("  Sam James  ", " Harbord ", LocalDate.of(2026, 9, 10), "Cortado",
-                new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, false);
+                new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, false, null);
     }
 
     private VisitRequest studyVisit() {
         return new VisitRequest("Sam James", "Harbord", LocalDate.of(2026, 9, 10), "Cortado",
                 new BigDecimal("4.50"), 4, true, true, false, Seating.LIMITED, "Before 5pm", NoiseLevel.QUIET,
-                "https://example.com/cortado.jpg", null);
+                "https://example.com/cortado.jpg", null, null);
+    }
+
+    private VisitRequest visitWithExtras() {
+        return new VisitRequest("Sam James", "Harbord", LocalDate.of(2026, 9, 10), "Cortado",
+                new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, true,
+                List.of(new ExtraItem(" Almond croissant ", new BigDecimal("4.25")),
+                        new ExtraItem("Cookie", new BigDecimal("2.10"))));
+    }
+
+    @Test
+    void extrasAreSavedInOrderAndAddedToTheTotal() {
+        when(users.getReferenceById(ME)).thenReturn(me);
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        VisitResponse result = service.create(ME, visitWithExtras());
+
+        assertThat(result.extras()).extracting(ExtraItem::name).containsExactly("Almond croissant", "Cookie");
+        assertThat(result.price()).isEqualByComparingTo("4.50");
+        assertThat(result.total()).isEqualByComparingTo("10.85");
+    }
+
+    @Test
+    void editingAVisitReplacesItsExtras() {
+        Cafe existing = new Cafe("Old", "Annex", LocalDate.of(2026, 1, 1), "Tea", BigDecimal.ONE, 2);
+        when(repository.findByIdAndUserId(5L, ME)).thenReturn(Optional.of(existing));
+
+        service.update(ME, 5L, visitWithExtras());
+        VisitResponse result = service.update(ME, 5L, regularVisit());
+
+        assertThat(result.extras()).isEmpty();
+        assertThat(result.total()).isEqualByComparingTo("4.50");
     }
 
     @Test
@@ -151,5 +183,13 @@ class CafeServiceTest {
         assertThat(stats.visits()).isZero();
         assertThat(stats.totalSpent()).isEqualByComparingTo("0");
         assertThat(stats.averageRating()).isNull();
+    }
+
+    @Test
+    void totalSpentIncludesExtras() {
+        when(repository.totalSpent(ME)).thenReturn(new BigDecimal("12.00"));
+        when(repository.extrasSpent(ME)).thenReturn(new BigDecimal("4.25"));
+
+        assertThat(service.stats(ME).totalSpent()).isEqualByComparingTo("16.25");
     }
 }

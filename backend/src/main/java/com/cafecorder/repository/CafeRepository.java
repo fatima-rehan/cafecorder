@@ -33,6 +33,10 @@ public interface CafeRepository extends JpaRepository<Cafe, Long> {
     @Query("select sum(c.price) from Cafe c where c.user.id = :userId")
     BigDecimal totalSpent(@Param("userId") Long userId);
 
+    // what was spent on extras (pastries etc.); null when there are none
+    @Query("select sum(e.price) from Cafe c join c.extras e where c.user.id = :userId")
+    BigDecimal extrasSpent(@Param("userId") Long userId);
+
     // unrated (0) visits are left out so they don't drag the average down; null when nothing is rated
     @Query("select avg(c.rating) from Cafe c where c.user.id = :userId and c.rating > 0")
     Double averageRating(@Param("userId") Long userId);

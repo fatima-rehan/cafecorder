@@ -23,10 +23,10 @@ export default function VisitCard({ visit, onOpen, onEdit, onDelete }) {
               {visit.shared === false && <span className="private-tag">Private</span>}
             </p>
           </div>
-          <span className="price">{money.format(visit.price)}</span>
+          <span className="price">{money.format(visit.total ?? visit.price)}</span>
         </header>
 
-        <p className="order">{visit.order}</p>
+        <p className="order">{[visit.order, ...(visit.extras ?? []).map((x) => x.name)].join(' + ')}</p>
         <Rating value={visit.rating} />
         {visit.studySpot && <StudyChips visit={visit} />}
 

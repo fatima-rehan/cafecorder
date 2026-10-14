@@ -46,7 +46,7 @@ body { color-scheme: light; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(1.2rem, 4vh, 2.4rem);
+  gap: clamp(2rem, 6vh, 4rem);
   padding-block: 1.5rem;
   overflow: hidden;
   background: var(--cream);
@@ -59,9 +59,10 @@ body { color-scheme: light; }
 .tagline { margin: 0.3rem 0 0; color: var(--muted); font-size: 1.05rem; }
 
 /* the scene between the title and the button */
-.scene { position: relative; width: 100%; height: clamp(300px, 56vh, 560px); }
+/* keep the box the same shape as the wide layout's viewBox (1600x600), or the mat spills past it */
+.scene { position: relative; width: min(100%, 1400px, 52vh * 8 / 3); aspect-ratio: 8 / 3; }
 @media (max-width: 700px) {
-  .scene { height: clamp(360px, 62svh, 640px); }
+  .scene { width: 100%; aspect-ratio: auto; height: clamp(360px, 62svh, 640px); }
   .landing { gap: 1rem; }
 }
 .scene-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
@@ -301,7 +302,35 @@ select:focus, input:focus { outline: 2px solid var(--crema); outline-offset: 1px
 
 /* photo picker in the form */
 .photo-field { display: flex; flex-direction: column; gap: 0.5rem; }
-.photo-field img, .photo-empty { aspect-ratio: 16 / 9; border-radius: 12px; }
+.photo-field img, .photo-empty { aspect-ratio: 4 / 3; border-radius: 12px; }
+
+.adjuster { display: flex; flex-direction: column; gap: 0.6rem; }
+.adjust-frame {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #efe4d6;
+  cursor: grab;
+  touch-action: none; /* the drag moves the photo instead of scrolling the form */
+  user-select: none;
+}
+.adjust-frame:active { cursor: grabbing; }
+.photo-field .adjust-frame img { position: absolute; max-width: none; aspect-ratio: auto; border-radius: 0; object-fit: fill; pointer-events: none; }
+.adjust-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 0.6rem;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(43, 26, 18, 0.6);
+  color: #fff;
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+.dialog label.adjust-zoom { flex-direction: row; align-items: center; gap: 0.75rem; }
+.adjust-zoom input { flex: 1; accent-color: var(--roast); }
 .photo-empty {
   display: grid;
   place-items: center;
@@ -521,6 +550,16 @@ select:focus, input:focus { outline: 2px solid var(--crema); outline-offset: 1px
 
 .study-fields { border: 1px solid var(--line); border-radius: 12px; padding: 1rem; margin: 0; display: flex; flex-direction: column; gap: 0.9rem; }
 .field-error { color: var(--danger); font-size: 0.8rem; font-weight: 400; }
+
+.extras { display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; }
+.extra-row { display: grid; grid-template-columns: 1fr 7rem auto; gap: 0.6rem; align-items: start; width: 100%; }
+.extra-remove { margin-top: 1.55rem; }
+.add-extra { padding-inline: 0; }
+.add-extra:hover { background: transparent; }
+.extras-total { margin: 0; font-size: 0.9rem; }
+.order-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.order-lines li { display: flex; justify-content: space-between; gap: 1rem; }
+.order-lines li span:last-child { color: var(--muted); white-space: nowrap; }
 .form-error { color: var(--danger); margin: 0; }
 
 @media (max-width: 640px) {

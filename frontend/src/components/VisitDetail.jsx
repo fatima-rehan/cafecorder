@@ -4,7 +4,7 @@ import { formatDate, money } from '../format.js'
 import Rating from './Rating.jsx'
 import StudyChips from './StudyChips.jsx'
 
-// Your own visit (with Edit/Delete), or someone's shared visit from the feed (read-only, no price)
+// Your own visit (with Edit/Delete), or someone's shared visit from the feed (read-only)
 export default function VisitDetail({ visit, onEdit, onDelete, onClose }) {
   const [confirming, setConfirming] = useState(false)
   const editable = Boolean(onEdit)
@@ -29,10 +29,18 @@ export default function VisitDetail({ visit, onEdit, onDelete, onClose }) {
               <h2>{visit.name}</h2>
               <p className="muted">{visit.neighbourhood} · {formatDate(visit.visitDate)}</p>
             </div>
-            {visit.price != null && <span className="price">{money.format(visit.price)}</span>}
+            {visit.price != null && <span className="price">{money.format(visit.total ?? visit.price)}</span>}
           </header>
 
-          <p className="order">{visit.order}</p>
+          {visit.extras?.length ? (
+            <ul className="order-lines">
+              {[{ name: visit.order, price: visit.price }, ...visit.extras].map((x, i) => (
+                <li key={i}><span>{x.name}</span><span>{money.format(x.price)}</span></li>
+              ))}
+            </ul>
+          ) : (
+            <p className="order">{visit.order}</p>
+          )}
           <Rating value={visit.rating} />
           {visit.author && <p className="muted byline">Shared by {visit.author}</p>}
           {editable && visit.shared === false && <p className="muted byline">Private: only you can see this visit</p>}

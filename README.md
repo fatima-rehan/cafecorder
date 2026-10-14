@@ -4,11 +4,12 @@ A logbook for Toronto cafe visits. Log what you ordered, what you paid and how y
 
 ## Features
 
-- **Your logbook:** add, edit and delete visits. Filter by neighbourhood and sort by newest, rating or price.
+- **Your logbook:** add, edit and delete visits. Filter by neighbourhood and sort by newest or rating.
 - **Study spots:** mark a visit as a study session and note wifi, outlets, seating, laptop policy and noise level.
 - **Stats:** total visits, unique cafes, total spent and average rating.
-- **Photos:** upload a photo (resized in the browser) or paste an image link.
-- **Explore:** a public feed of shared visits and a leaderboard of the top-rated cafes. Prices stay private.
+- **Extras:** add anything else you ordered, like a pastry on the side, each with its own price. Totals include them.
+- **Photos:** upload a photo, then drag and zoom to frame it. It's cropped and resized in the browser before upload.
+- **Explore:** a public feed of shared visits and a leaderboard of the top-rated cafes.
 - **Accounts:** sign up and log in. Every visit is private to its owner unless shared.
 
 ## Tech stack
@@ -41,7 +42,7 @@ controller  ->  service  ->  repository
 | POST | `/api/auth/register` | Create an account |
 | POST | `/api/auth/login` | Log in, returns a token |
 | GET | `/api/auth/me` | Current user |
-| GET | `/api/visits` | My visits (`?neighbourhood=`, `?sort=RECENT\|RATING\|PRICE`) |
+| GET | `/api/visits` | My visits (`?neighbourhood=`, `?sort=RECENT\|RATING`) |
 | GET | `/api/visits/{id}` | One visit |
 | POST | `/api/visits` | Log a visit |
 | PUT | `/api/visits/{id}` | Update a visit |

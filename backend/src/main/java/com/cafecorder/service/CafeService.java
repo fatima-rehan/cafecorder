@@ -6,6 +6,7 @@ import com.cafecorder.dto.VisitResponse;
 import com.cafecorder.dto.VisitStats;
 import com.cafecorder.exception.VisitNotFoundException;
 import com.cafecorder.model.Cafe;
+import com.cafecorder.model.Extra;
 import com.cafecorder.model.StudyCafe;
 import com.cafecorder.repository.CafeRepository;
 import com.cafecorder.repository.UserRepository;
@@ -46,7 +47,8 @@ public class CafeService {
     }
 
     public VisitStats stats(Long userId) {
-        BigDecimal total = Objects.requireNonNullElse(repository.totalSpent(userId), BigDecimal.ZERO);
+        BigDecimal total = Objects.requireNonNullElse(repository.totalSpent(userId), BigDecimal.ZERO)
+                .add(Objects.requireNonNullElse(repository.extrasSpent(userId), BigDecimal.ZERO));
         return new VisitStats(repository.countByUserId(userId), repository.countUniqueCafes(userId), total,
                 repository.averageRating(userId));
     }
@@ -91,7 +93,12 @@ public class CafeService {
         cafe.setUser(users.getReferenceById(userId));
         cafe.setPhotoUrl(blankToNull(r.photoUrl()));
         cafe.setShared(r.isShareable());
+        cafe.setExtras(toExtras(r));
         return cafe;
+    }
+
+    private static List<Extra> toExtras(VisitRequest r) {
+        return r.extrasOrEmpty().stream().map(e -> new Extra(e.name().trim(), e.price())).toList();
     }
 
     private Cafe newCafe(VisitRequest r) {
@@ -113,6 +120,7 @@ public class CafeService {
         cafe.setRating(r.rating());
         cafe.setPhotoUrl(blankToNull(r.photoUrl()));
         cafe.setShared(r.isShareable());
+        cafe.setExtras(toExtras(r));
     }
 
     private static String blankToNull(String s) {

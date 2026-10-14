@@ -1,6 +1,7 @@
 package com.cafecorder.controller;
 
 import com.cafecorder.config.SecurityConfig;
+import com.cafecorder.dto.ExtraItem;
 import com.cafecorder.dto.SortOption;
 import com.cafecorder.dto.VisitResponse;
 import com.cafecorder.exception.VisitNotFoundException;
@@ -47,7 +48,8 @@ class CafeControllerTest {
 
     private final VisitResponse pilot = new VisitResponse(1L, "Pilot Coffee", "Leslieville",
             LocalDate.of(2026, 9, 1), "Oat flat white", new BigDecimal("5.75"), 5, true,
-            true, true, Seating.GOOD, "No restrictions", NoiseLevel.MODERATE, null, true);
+            true, true, Seating.GOOD, "No restrictions", NoiseLevel.MODERATE, null, true,
+            List.of(new ExtraItem("Almond croissant", new BigDecimal("4.25"))), new BigDecimal("10.00"));
 
     @Test
     void visitsNeedAToken() throws Exception {
@@ -64,6 +66,8 @@ class CafeControllerTest {
                 .andExpect(jsonPath("$[0].name").value("Pilot Coffee"))
                 .andExpect(jsonPath("$[0].visitDate").value("2026-09-01"))
                 .andExpect(jsonPath("$[0].price").value(5.75))
+                .andExpect(jsonPath("$[0].extras[0].name").value("Almond croissant"))
+                .andExpect(jsonPath("$[0].total").value(10.00))
                 .andExpect(jsonPath("$[0].studySpot").value(true));
     }
 
@@ -110,6 +114,21 @@ class CafeControllerTest {
                         """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.studyDetailsComplete").value("study sessions need seating and noise level"));
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void eachExtraItemIsValidated() throws Exception {
+        mvc.perform(post("/api/visits").with(user1()).contentType(MediaType.APPLICATION_JSON).content("""
+                        {"name":"Sam James","neighbourhood":"Harbord","visitDate":"2026-09-01",
+                         "order":"Cortado","price":4.50,"rating":4,
+                         "extras":[{"name":"Croissant","price":3.50},{"name":"","price":-1}]}
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors['extras[1].name']").exists())
+                .andExpect(jsonPath("$.errors['extras[1].price']").exists())
+                .andExpect(jsonPath("$.errors['extras[0].name']").doesNotExist());
 
         verifyNoInteractions(service);
     }

@@ -1,17 +1,6 @@
 import { useEffect, useState } from 'react'
-
-// Phone photos are 3-12 MB. Draw onto a canvas at max 1200px and re-encode as JPEG,
-// which brings it to a few hundred KB, well under the backend's ~3 MB cap.
-async function resizePhoto(file, maxSide = 1200) {
-  const bitmap = await createImageBitmap(file)
-  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(bitmap.width * scale)
-  canvas.height = Math.round(bitmap.height * scale)
-  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  bitmap.close()
-  return canvas.toDataURL('image/jpeg', 0.82)
-}
+import { money } from '../format.js'
+import PhotoAdjuster from './PhotoAdjuster.jsx'
 
 const today = () => new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local time
 
@@ -30,6 +19,7 @@ const EMPTY = {
   noiseLevel: 'MODERATE',
   photoUrl: '',
   shared: true,
+  extras: [], // [{ name, price }] for anything besides the main order
 }
 
 // API response -> form fields (studySpot comes back, studySession goes out)
@@ -49,6 +39,7 @@ function fromVisit(v) {
     noiseLevel: v.noiseLevel ?? EMPTY.noiseLevel,
     photoUrl: v.photoUrl ?? '',
     shared: v.shared !== false,
+    extras: (v.extras ?? []).map((x) => ({ name: x.name, price: String(x.price) })),
   }
 }
 
@@ -58,6 +49,10 @@ function toPayload(form) {
     price: form.price === '' ? null : Number(form.price),
     photoUrl: form.photoUrl || null,
     laptopPolicy: form.laptopPolicy.trim() || null,
+    // rows left completely blank are dropped; half-filled ones go through so the backend can flag them
+    extras: form.extras
+      .filter((x) => x.name.trim() || x.price !== '')
+      .map((x) => ({ name: x.name, price: x.price === '' ? null : Number(x.price) })),
   }
   if (!form.studySession) {
     Object.assign(payload, { hasWifi: null, hasOutlets: null, seating: null, laptopPolicy: null, noiseLevel: null })
@@ -71,6 +66,7 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
+  const [adjusting, setAdjusting] = useState(null) // photo being positioned, before it's saved to the form
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -83,17 +79,34 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
     setForm((f) => ({ ...f, [field]: value }))
   }
 
-  async function pickPhoto(e) {
+  const setExtra = (i, field) => (e) =>
+    setForm((f) => ({ ...f, extras: f.extras.map((x, j) => (j === i ? { ...x, [field]: e.target.value } : x)) }))
+  const addExtra = () => setForm((f) => ({ ...f, extras: [...f.extras, { name: '', price: '' }] }))
+  const removeExtra = (i) => setForm((f) => ({ ...f, extras: f.extras.filter((_, j) => j !== i) }))
+
+  const total = [form.price, ...form.extras.map((x) => x.price)].reduce((sum, p) => sum + (Number(p) || 0), 0)
+
+  function pickPhoto(e) {
     const file = e.target.files?.[0]
     e.target.value = '' // lets you pick the same file again after removing it
     if (!file) return
-    try {
-      const photoUrl = await resizePhoto(file)
-      setForm((f) => ({ ...f, photoUrl }))
-      setErrors(({ photoUrl: _, ...rest }) => rest)
-    } catch {
-      setErrors((x) => ({ ...x, photoUrl: "Couldn't read that image. Try a JPG or PNG." }))
-    }
+    setErrors(({ photoUrl: _, ...rest }) => rest)
+    setAdjusting(URL.createObjectURL(file))
+  }
+
+  function stopAdjusting() {
+    if (adjusting?.startsWith('blob:')) URL.revokeObjectURL(adjusting)
+    setAdjusting(null)
+  }
+
+  function applyPhoto(photoUrl) {
+    setForm((f) => ({ ...f, photoUrl }))
+    stopAdjusting()
+  }
+
+  function badPhoto() {
+    stopAdjusting()
+    setErrors((x) => ({ ...x, photoUrl: "Couldn't read that image. Try a JPG or PNG." }))
   }
 
   async function submit(e) {
@@ -121,34 +134,46 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
         </header>
 
         <div className="photo-field">
-          {form.photoUrl ? (
-            <img src={form.photoUrl} alt="Your photo" />
+          {adjusting ? (
+            <PhotoAdjuster src={adjusting} onDone={applyPhoto} onCancel={stopAdjusting} onError={badPhoto} />
           ) : (
-            <div className="photo-empty">Add a photo of your drink or the cafe</div>
+            <>
+              {form.photoUrl ? (
+                <img src={form.photoUrl} alt="Your photo" />
+              ) : (
+                <div className="photo-empty">Add a photo of your drink or the cafe</div>
+              )}
+              <div className="photo-actions">
+                <label className="btn btn-ghost photo-pick">
+                  {form.photoUrl ? 'Change photo' : 'Choose photo'}
+                  <input type="file" accept="image/*" onChange={pickPhoto} className="visually-hidden" />
+                </label>
+                {/* uploads only: a photo from another site can't be redrawn on a canvas */}
+                {form.photoUrl.startsWith('data:') && (
+                  <button type="button" className="btn btn-ghost" onClick={() => setAdjusting(form.photoUrl)}>
+                    Adjust
+                  </button>
+                )}
+                {form.photoUrl && (
+                  <button type="button" className="btn btn-ghost" onClick={() => setForm((f) => ({ ...f, photoUrl: '' }))}>
+                    Remove
+                  </button>
+                )}
+              </div>
+            </>
           )}
-          <div className="photo-actions">
-            <label className="btn btn-ghost photo-pick">
-              {form.photoUrl ? 'Change photo' : 'Choose photo'}
-              <input type="file" accept="image/*" onChange={pickPhoto} className="visually-hidden" />
-            </label>
-            {form.photoUrl && (
-              <button type="button" className="btn btn-ghost" onClick={() => setForm((f) => ({ ...f, photoUrl: '' }))}>
-                Remove
-              </button>
-            )}
-          </div>
           {fieldError('photoUrl')}
         </div>
 
         <div className="grid-2">
           <label>
             Cafe
-            <input value={form.name} onChange={set('name')} placeholder="Pilot Coffee" />
+            <input value={form.name} onChange={set('name')} placeholder="All Is Well" />
             {fieldError('name')}
           </label>
           <label>
             Neighbourhood
-            <input value={form.neighbourhood} onChange={set('neighbourhood')} list="hoods" placeholder="Leslieville" />
+            <input value={form.neighbourhood} onChange={set('neighbourhood')} list="hoods" placeholder="Ossington" />
             <datalist id="hoods">
               {neighbourhoods.map((n) => <option key={n} value={n} />)}
             </datalist>
@@ -168,9 +193,32 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
 
         <label>
           What you ordered
-          <input value={form.order} onChange={set('order')} placeholder="Oat flat white" />
+          <input value={form.order} onChange={set('order')} placeholder="Iced Vanilla Latter" />
           {fieldError('order')}
         </label>
+
+        <div className="extras">
+          {form.extras.map((x, i) => (
+            <div className="extra-row" key={i}>
+              <label>
+                Also ordered
+                <input value={x.name} onChange={setExtra(i, 'name')} placeholder="Almond croissant" />
+                {fieldError(`extras[${i}].name`)}
+              </label>
+              <label>
+                Price
+                <input type="number" inputMode="decimal" min="0" step="0.01" value={x.price} onChange={setExtra(i, 'price')} placeholder="4.25" />
+                {fieldError(`extras[${i}].price`)}
+              </label>
+              <button type="button" className="btn btn-ghost extra-remove" onClick={() => removeExtra(i)} aria-label={`Remove item ${i + 1}`}>✕</button>
+            </div>
+          ))}
+          {form.extras.length < 10 && (
+            <button type="button" className="btn btn-ghost add-extra" onClick={addExtra}>+ Add another item</button>
+          )}
+          {form.extras.length > 0 && <p className="muted extras-total">Total {money.format(total)}</p>}
+          {fieldError('extras')}
+        </div>
 
         <div className="rating-input">
           <span>Rating</span>
@@ -235,7 +283,7 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
           <input type="checkbox" checked={form.shared} onChange={set('shared')} />
           <span>
             Share on the public feed
-            <span className="hint">Others see the photo, cafe, order and rating. Never the price.</span>
+            <span className="hint">Others see the photo, cafe, order, price and rating.</span>
           </span>
         </label>
 

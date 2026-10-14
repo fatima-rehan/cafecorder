@@ -2,10 +2,12 @@ package com.cafecorder.dto;
 
 import com.cafecorder.model.NoiseLevel;
 import com.cafecorder.model.Seating;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 /*
  * What the frontend sends to create or update a visit. Replaces the old Scanner prompts:
@@ -33,8 +35,14 @@ public record VisitRequest(
                 message = "must be an https:// image link or a JPEG, PNG or WebP upload")
         String photoUrl,
         // null counts as true, so visits are shared unless you opt out
-        Boolean shared
+        Boolean shared,
+        // anything besides the main drink. @Valid checks each item, so errors look like "extras[0].price".
+        @Size(max = 10, message = "up to 10 extra items") List<@Valid ExtraItem> extras
 ) {
+    public List<ExtraItem> extrasOrEmpty() {
+        return extras == null ? List.of() : extras;
+    }
+
     public boolean isShareable() {
         return !Boolean.FALSE.equals(shared);
     }

@@ -35,3 +35,12 @@ CREATE INDEX IF NOT EXISTS idx_cafe_visits_user ON cafe_visits (user_id);
 ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS photo_url TEXT;
 ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS shared BOOLEAN NOT NULL DEFAULT TRUE;
 CREATE INDEX IF NOT EXISTS idx_cafe_visits_feed ON cafe_visits (shared, visit_date DESC);
+
+-- Anything ordered besides the main drink, like a pastry on the side. One visit, many extras.
+CREATE TABLE IF NOT EXISTS visit_extras (
+    visit_id   BIGINT        NOT NULL REFERENCES cafe_visits (id) ON DELETE CASCADE,
+    item_index INTEGER       NOT NULL,
+    name       VARCHAR(120)  NOT NULL,
+    price      NUMERIC(7, 2) NOT NULL CHECK (price >= 0),
+    PRIMARY KEY (visit_id, item_index)
+);
