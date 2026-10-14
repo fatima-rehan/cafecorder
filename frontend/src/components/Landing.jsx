@@ -15,7 +15,6 @@ export default function Landing({ onEnter }) {
       <div className="landing-copy">
         <p className="eyebrow">A little logbook for Toronto cafes</p>
         <h1>CafeCorder</h1>
-        <p className="tagline">Every cup, every corner, remembered.</p>
       </div>
 
       <div className="scene">
