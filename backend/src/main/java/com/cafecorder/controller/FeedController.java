@@ -23,10 +23,11 @@ public class FeedController {
         this.feed = feed;
     }
 
-    // GET /api/feed/photos?sort=TOP
+    // GET /api/feed/photos?sort=TOP&page=1
     @GetMapping("/photos")
-    public List<FeedItem> photos(@RequestParam(defaultValue = "RECENT") FeedSort sort) {
-        return feed.photos(sort);
+    public List<FeedItem> photos(@RequestParam(defaultValue = "RECENT") FeedSort sort,
+                                 @RequestParam(defaultValue = "0") int page) {
+        return feed.photos(sort, page);
     }
 
     @GetMapping("/top-cafes")

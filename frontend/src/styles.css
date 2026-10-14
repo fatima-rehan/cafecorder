@@ -353,6 +353,7 @@ select:focus, input:focus { outline: 2px solid var(--crema); outline-offset: 1px
 .btn-block { width: 100%; padding-block: 0.75rem; }
 .btn-outline { background: transparent; border: 1.5px solid var(--line); color: var(--espresso); }
 .btn-outline:hover { background: var(--paper); border-color: #d8c8b4; }
+.load-more { display: flex; justify-content: center; margin-top: 1.5rem; }
 .hint { display: block; color: var(--muted); font-size: 0.8rem; font-weight: 400; }
 .byline { font-size: 0.85rem; }
 .private-tag {

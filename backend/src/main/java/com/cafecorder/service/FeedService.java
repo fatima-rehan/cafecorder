@@ -30,11 +30,12 @@ public class FeedService {
         this.repository = repository;
     }
 
-    public List<FeedItem> photos(FeedSort sort) {
+    // page 0 is the newest (or best) 30; the frontend asks for the next page with "Load more"
+    public List<FeedItem> photos(FeedSort sort, int page) {
         Sort order = sort == FeedSort.TOP
                 ? Sort.by(DESC, "rating").and(Sort.by(DESC, "visitDate")).and(Sort.by(DESC, "id"))
                 : Sort.by(DESC, "visitDate").and(Sort.by(DESC, "id"));
-        return repository.findBySharedTrue(PageRequest.of(0, PAGE_SIZE, order)).stream()
+        return repository.findBySharedTrue(PageRequest.of(Math.max(page, 0), PAGE_SIZE, order)).stream()
                 .map(FeedItem::from)
                 .toList();
     }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
 import { photoFor } from '../drinkArt.js'
 import CafeMap from './CafeMap.jsx'
@@ -18,13 +18,20 @@ const PHOTO_SORTS = [
 ]
 
 const FEED_ERROR = "Can't load the feed right now."
+// matches FeedService.PAGE_SIZE; a full page means there may be more
+const PAGE_SIZE = 30
 
 // Public: what everyone has shared. Works signed in or not.
 export default function Explore({ signedIn, onSignUp }) {
   const [tab, setTab] = useState('top')
   const [photoSort, setPhotoSort] = useState('RECENT')
+  const photoSortRef = useRef(photoSort)
+  photoSortRef.current = photoSort
   const [topCafes, setTopCafes] = useState(null)
   const [photos, setPhotos] = useState(null)
+  const [photoPage, setPhotoPage] = useState(0)
+  const [morePhotos, setMorePhotos] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [mapCafes, setMapCafes] = useState(null)
   const [viewing, setViewing] = useState(null)
   const [error, setError] = useState('')
@@ -33,9 +40,35 @@ export default function Explore({ signedIn, onSignUp }) {
     api.feed.topCafes().then(setTopCafes).catch(() => setError(FEED_ERROR))
   }, [])
 
+  // a new sort starts over from the first page; stale answers from the old sort are dropped
   useEffect(() => {
-    api.feed.photos(photoSort).then(setPhotos).catch(() => setError(FEED_ERROR))
+    let current = true
+    setPhotos(null)
+    api.feed.photos(photoSort).then((page) => {
+      if (!current) return
+      setPhotos(page)
+      setPhotoPage(0)
+      setMorePhotos(page.length === PAGE_SIZE)
+    }).catch(() => current && setError(FEED_ERROR))
+    return () => { current = false }
   }, [photoSort])
+
+  async function loadMorePhotos() {
+    const sort = photoSort
+    setLoadingMore(true)
+    try {
+      const page = await api.feed.photos(sort, photoPage + 1)
+      if (sort !== photoSortRef.current) return
+      // skip anything already shown, in case new posts shifted the pages
+      setPhotos((shown) => [...shown, ...page.filter((p) => !shown.some((s) => s.id === p.id))])
+      setPhotoPage((n) => n + 1)
+      setMorePhotos(page.length === PAGE_SIZE)
+    } catch {
+      setError(FEED_ERROR)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   // only fetched once the map is opened
   useEffect(() => {
@@ -105,7 +138,18 @@ export default function Explore({ signedIn, onSignUp }) {
       {tab === 'photos' && photos && (
         photos.length === 0
           ? <p className="empty">Nothing shared yet.</p>
-          : <GalleryGrid visits={photos} onOpen={setViewing} showAuthor />
+          : (
+            <>
+              <GalleryGrid visits={photos} onOpen={setViewing} showAuthor />
+              {morePhotos && (
+                <div className="load-more">
+                  <button className="btn btn-outline" onClick={loadMorePhotos} disabled={loadingMore}>
+                    {loadingMore ? 'Loading…' : 'Load more'}
+                  </button>
+                </div>
+              )}
+            </>
+          )
       )}
 
       {tab === 'map' && (

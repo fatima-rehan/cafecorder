@@ -25,6 +25,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -51,7 +52,7 @@ class PublicEndpointsTest {
 
     @Test
     void feedPhotosAreOpenToEveryoneAndShowPriceButNoEmail() throws Exception {
-        when(feed.photos(FeedSort.TOP)).thenReturn(List.of(new FeedItem(3L, "18Feet", "Queen West",
+        when(feed.photos(FeedSort.TOP, 0)).thenReturn(List.of(new FeedItem(3L, "18Feet", "Queen West",
                 LocalDate.of(2026, 9, 26), "Dalgona matcha", new BigDecimal("6.50"), List.of(),
                 new BigDecimal("6.50"), 5, null, true, "Fatima", null, null)));
 
@@ -60,6 +61,16 @@ class PublicEndpointsTest {
                 .andExpect(jsonPath("$[0].author").value("Fatima"))
                 .andExpect(jsonPath("$[0].price").value(6.50))
                 .andExpect(jsonPath("$[0].email").doesNotExist());
+    }
+
+    @Test
+    void guestsCanPageThroughOlderPosts() throws Exception {
+        when(feed.photos(FeedSort.RECENT, 1)).thenReturn(List.of());
+
+        mvc.perform(get("/api/feed/photos").param("page", "1"))
+                .andExpect(status().isOk());
+
+        verify(feed).photos(FeedSort.RECENT, 1);
     }
 
     @Test

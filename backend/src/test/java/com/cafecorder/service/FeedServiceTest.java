@@ -35,7 +35,7 @@ class FeedServiceTest {
     void topSortAsksForBestRatedFirstAndCapsThePage() {
         when(repository.findBySharedTrue(any())).thenReturn(List.of());
 
-        feed.photos(FeedSort.TOP);
+        feed.photos(FeedSort.TOP, 0);
 
         ArgumentCaptor<Pageable> page = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findBySharedTrue(page.capture());
@@ -44,11 +44,23 @@ class FeedServiceTest {
     }
 
     @Test
+    void laterPagesReachOlderPostsAndANegativePageMeansTheFirst() {
+        when(repository.findBySharedTrue(any())).thenReturn(List.of());
+
+        feed.photos(FeedSort.RECENT, 2);
+        feed.photos(FeedSort.RECENT, -5);
+
+        ArgumentCaptor<Pageable> page = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository, times(2)).findBySharedTrue(page.capture());
+        assertThat(page.getAllValues()).extracting(Pageable::getOffset).containsExactly(60L, 0L);
+    }
+
+    @Test
     void visitsFromBeforeAccountsShowAGenericAuthor() {
         Cafe orphan = new Cafe("Sam James", "Harbord", LocalDate.of(2026, 9, 1), "Cortado", BigDecimal.TEN, 4);
         when(repository.findBySharedTrue(any())).thenReturn(List.of(orphan));
 
-        List<FeedItem> items = feed.photos(FeedSort.RECENT);
+        List<FeedItem> items = feed.photos(FeedSort.RECENT, 0);
 
         assertThat(items).singleElement().extracting(FeedItem::author).isEqualTo("A CafeCorder user");
     }

@@ -77,7 +77,7 @@ export const api = {
     remove: (id) => request(`/visits/${id}`, { method: 'DELETE' }),
   },
   feed: {
-    photos: (sort) => request(`/feed/photos?sort=${sort}`, { open: true }),
+    photos: (sort, page = 0) => request(`/feed/photos?sort=${sort}&page=${page}`, { open: true }),
     topCafes: () => request('/feed/top-cafes', { open: true }),
     map: () => request('/feed/map', { open: true }),
   },
