@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { photoFor } from '../drinkArt.js'
+import { formatDate } from '../format.js'
 
 // Pins are inline SVG (divIcon), so there are no marker image files for the bundler to lose
 // Same hex values as the theme variables in styles.css, since an SVG string can't read CSS vars
@@ -29,7 +30,7 @@ function el(tag, className, text) {
   return node
 }
 
-function popupFor(cafe) {
+function popupFor(cafe, onOpenVisit) {
   const box = el('div', 'map-popup')
   const img = el('img')
   img.src = cafe.coverPhoto || photoFor({ order: cafe.name })
@@ -39,6 +40,16 @@ function popupFor(cafe) {
   if (where) box.append(el('span', 'muted', where))
   const score = cafe.averageRating != null ? `${cafe.averageRating.toFixed(1)}/5 · ` : ''
   box.append(el('span', 'muted', `${score}${cafe.visits} ${cafe.visits === 1 ? 'visit' : 'visits'}`))
+  if (onOpenVisit && cafe.visitList) {
+    const list = el('div', 'map-popup-visits')
+    for (const visit of cafe.visitList) {
+      const open = el('button', null, `${formatDate(visit.visitDate)} · ${visit.order}`)
+      open.type = 'button'
+      open.addEventListener('click', () => onOpenVisit(visit))
+      list.append(open)
+    }
+    box.append(list)
+  }
   const link = el('a', null, 'Open in OpenStreetMap')
   link.href = `https://www.openstreetmap.org/?mlat=${cafe.latitude}&mlon=${cafe.longitude}#map=18/${cafe.latitude}/${cafe.longitude}`
   link.target = '_blank'
@@ -47,8 +58,9 @@ function popupFor(cafe) {
   return box
 }
 
-// Shared cafes as pins, plus your own location if you allow it
-export default function CafeMap({ cafes }) {
+// Cafes as pins, plus your own location if you allow it.
+// locateOnOpen=false keeps the view on the cafes until "Near me" is pressed.
+export default function CafeMap({ cafes, label = 'Map of shared cafes', locateOnOpen = true, onOpenVisit }) {
   const boxRef = useRef(null)
   const mapRef = useRef(null)
   const cafeLayer = useRef(null)
@@ -65,7 +77,7 @@ export default function CafeMap({ cafes }) {
     }).addTo(map)
     cafeLayer.current = L.layerGroup().addTo(map)
     mapRef.current = map
-    locate()
+    if (locateOnOpen) locate()
     return () => {
       map.remove()
       mapRef.current = null
@@ -79,14 +91,14 @@ export default function CafeMap({ cafes }) {
     layer.clearLayers()
     for (const cafe of cafes) {
       L.marker([cafe.latitude, cafe.longitude], { icon: cafeIcon, title: cafe.name })
-        .bindPopup(() => popupFor(cafe), { minWidth: 200 })
+        .bindPopup(() => popupFor(cafe, onOpenVisit), { minWidth: 200 })
         .addTo(layer)
     }
     // without your location, frame all the pins
     if (!youMarker.current && cafes.length) {
       mapRef.current.fitBounds(cafes.map((c) => [c.latitude, c.longitude]), { padding: [40, 40], maxZoom: 14 })
     }
-  }, [cafes])
+  }, [cafes, onOpenVisit])
 
   function locate() {
     if (!navigator.geolocation) {
@@ -115,7 +127,7 @@ export default function CafeMap({ cafes }) {
 
   return (
     <div className="map-wrap">
-      <div ref={boxRef} className="cafe-map" role="region" aria-label="Map of shared cafes" />
+      <div ref={boxRef} className="cafe-map" role="region" aria-label={label} />
       <button className="btn btn-primary map-locate" onClick={locate} disabled={locating}>
         {locating ? 'Finding you…' : 'Near me'}
       </button>

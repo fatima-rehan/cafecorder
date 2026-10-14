@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../api.js'
+import CafeMap from './CafeMap.jsx'
 import GalleryGrid from './GalleryGrid.jsx'
 import StatsBar from './StatsBar.jsx'
 import VisitCard from './VisitCard.jsx'
@@ -14,9 +15,32 @@ const SORTS = [
 const VIEWS = [
   { value: 'list', label: 'List' },
   { value: 'gallery', label: 'Gallery' },
+  { value: 'map', label: 'Map' },
 ]
 
 const VIEW_KEY = 'cafecorder-view'
+
+// One pin per cafe, grouped the same way as the public map (name + address), newest visit first
+function pinsFor(visits) {
+  const cafes = new Map()
+  const newestFirst = [...visits].sort((a, b) => b.visitDate.localeCompare(a.visitDate))
+  for (const v of newestFirst) {
+    if (v.latitude == null || v.longitude == null) continue
+    const key = `${v.name.toLowerCase()}|${(v.address ?? '').toLowerCase()}`
+    const cafe = cafes.get(key) ?? {
+      name: v.name, address: v.address, city: v.city, latitude: v.latitude, longitude: v.longitude,
+      coverPhoto: null, visitList: [],
+    }
+    cafe.visitList.push(v)
+    cafe.coverPhoto ??= v.photoUrl ?? null
+    cafes.set(key, cafe)
+  }
+  return [...cafes.values()].map((c) => {
+    const rated = c.visitList.filter((v) => v.rating != null)
+    const averageRating = rated.length ? rated.reduce((sum, v) => sum + v.rating, 0) / rated.length : null
+    return { ...c, visits: c.visitList.length, averageRating }
+  })
+}
 
 // remember list vs gallery between visits (storage can be unavailable, so fail quietly)
 function savedView() {
@@ -39,6 +63,7 @@ export default function MyVisits({ user, composing, onComposeDone }) {
   const [viewing, setViewing] = useState(null) // visit open in the detail view
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const pins = useMemo(() => pinsFor(visits), [visits])
 
   const load = useCallback(async () => {
     try {
@@ -143,7 +168,19 @@ export default function MyVisits({ user, composing, onComposeDone }) {
         </div>
       )}
 
-      {view === 'gallery' ? (
+      {view === 'map' ? (
+        visits.length > 0 && (
+          <>
+            {pins.length === 0 && (
+              <p className="empty">None of these visits have an address yet. Edit one and pick an address to pin it.</p>
+            )}
+            {pins.length > 0 && pins.reduce((n, c) => n + c.visits, 0) < visits.length && (
+              <p className="muted map-note">Visits without an address aren't on the map.</p>
+            )}
+            <CafeMap cafes={pins} label="Map of your cafes" locateOnOpen={false} onOpenVisit={setViewing} />
+          </>
+        )
+      ) : view === 'gallery' ? (
         <GalleryGrid visits={visits} onOpen={setViewing} />
       ) : (
         <section className="cards">

@@ -578,7 +578,8 @@ select:focus, input:focus { outline: 2px solid var(--crema); outline-offset: 1px
 .suggestions li.active, .suggestions li:hover { background: #efe4d6; }
 
 /* ---------- map ---------- */
-.map-wrap { position: relative; }
+/* isolate keeps Leaflet's big z-indexes (and the Near me button) under dialogs */
+.map-wrap { position: relative; isolation: isolate; }
 .cafe-map { height: clamp(360px, 62vh, 640px); border-radius: 16px; border: 1px solid var(--line); z-index: 0; }
 .map-locate { position: absolute; top: 12px; right: 12px; z-index: 500; }
 .map-note { margin: 0.5rem 0 0; font-size: 0.85rem; }
@@ -587,6 +588,13 @@ select:focus, input:focus { outline: 2px solid var(--crema); outline-offset: 1px
 .map-popup img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; margin-bottom: 0.3rem; }
 .map-popup strong { font-size: 1rem; color: var(--espresso); }
 .map-popup a { color: var(--roast); font-weight: 500; margin-top: 0.2rem; }
+.map-popup-visits { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.35rem; max-height: 9.5rem; overflow-y: auto; }
+.map-popup-visits button {
+  font: inherit; font-size: 0.85rem; text-align: left; color: var(--espresso);
+  background: var(--cream); border: 1px solid var(--line); border-radius: 8px; padding: 0.35rem 0.55rem; cursor: pointer;
+}
+.map-popup-visits button:hover { border-color: var(--crema); }
+.map-popup-visits button:focus-visible { outline: 2px solid var(--crema); outline-offset: 1px; }
 .detail-address { margin: 0.15rem 0 0; font-size: 0.9rem; }
 .detail-address a { color: inherit; }
 
