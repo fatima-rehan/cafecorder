@@ -1,6 +1,7 @@
 package com.cafecorder.controller;
 
 import com.cafecorder.dto.FeedDtos.FeedItem;
+import com.cafecorder.dto.FeedDtos.MapCafe;
 import com.cafecorder.dto.FeedDtos.TopCafe;
 import com.cafecorder.service.FeedService;
 import com.cafecorder.service.FeedService.FeedSort;
@@ -31,5 +32,10 @@ public class FeedController {
     @GetMapping("/top-cafes")
     public List<TopCafe> topCafes() {
         return feed.topCafes();
+    }
+
+    @GetMapping("/map")
+    public List<MapCafe> map() {
+        return feed.mapCafes();
     }
 }

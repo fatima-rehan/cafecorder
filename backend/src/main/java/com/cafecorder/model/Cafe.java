@@ -55,6 +55,16 @@ public class Cafe {
     @Column(name = "photo_url", columnDefinition = "text")
     private String photoUrl;
 
+    // optional street address and city; latitude/longitude are null until it's found on the map
+    @Column(length = 200)
+    private String address;
+
+    @Column(length = 120)
+    private String city;
+
+    private Double latitude;
+    private Double longitude;
+
     // shown on the public feed when true
     @Column(nullable = false)
     private boolean shared = true;
@@ -98,6 +108,10 @@ public class Cafe {
     public String getPhotoUrl() { return photoUrl; }
     public boolean isShared() { return shared; }
     public List<Extra> getExtras() { return extras; }
+    public String getAddress() { return address; }
+    public String getCity() { return city; }
+    public Double getLatitude() { return latitude; }
+    public Double getLongitude() { return longitude; }
 
     // drink plus extras
     public BigDecimal getTotal() {
@@ -113,6 +127,14 @@ public class Cafe {
     public void setUser(AppUser user) { this.user = user; }
     public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
     public void setShared(boolean shared) { this.shared = shared; }
+
+    // set together so the coordinates always belong to the address
+    public void setLocation(String address, String city, Double latitude, Double longitude) {
+        this.address = address;
+        this.city = city;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
 
     // edits the list Hibernate is tracking instead of swapping it out
     public void setExtras(List<Extra> extras) {

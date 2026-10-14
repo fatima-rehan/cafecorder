@@ -4,6 +4,7 @@ import com.cafecorder.config.SecurityConfig;
 import com.cafecorder.dto.AuthDtos.AuthResponse;
 import com.cafecorder.dto.AuthDtos.UserResponse;
 import com.cafecorder.dto.FeedDtos.FeedItem;
+import com.cafecorder.dto.FeedDtos.MapCafe;
 import com.cafecorder.dto.FeedDtos.TopCafe;
 import com.cafecorder.exception.EmailTakenException;
 import com.cafecorder.service.AuthService;
@@ -52,7 +53,7 @@ class PublicEndpointsTest {
     void feedPhotosAreOpenToEveryoneAndShowPriceButNoEmail() throws Exception {
         when(feed.photos(FeedSort.TOP)).thenReturn(List.of(new FeedItem(3L, "18Feet", "Queen West",
                 LocalDate.of(2026, 9, 26), "Dalgona matcha", new BigDecimal("6.50"), List.of(),
-                new BigDecimal("6.50"), 5, null, true, "Fatima")));
+                new BigDecimal("6.50"), 5, null, true, "Fatima", null, null)));
 
         mvc.perform(get("/api/feed/photos").param("sort", "TOP"))
                 .andExpect(status().isOk())
@@ -69,6 +70,18 @@ class PublicEndpointsTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].averageRating").value(4.8))
                 .andExpect(jsonPath("$[0].visits").value(5));
+    }
+
+    @Test
+    void mapPinsAreOpenToEveryone() throws Exception {
+        when(feed.mapCafes()).thenReturn(List.of(
+                new MapCafe("18Feet", "1 Queen St W, Toronto", "Toronto", 43.65, -79.38, 3, 4.7, null)));
+
+        mvc.perform(get("/api/feed/map"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].latitude").value(43.65))
+                .andExpect(jsonPath("$[0].longitude").value(-79.38))
+                .andExpect(jsonPath("$[0].address").value("1 Queen St W, Toronto"));
     }
 
     @Test

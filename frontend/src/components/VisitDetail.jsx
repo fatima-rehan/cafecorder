@@ -27,7 +27,16 @@ export default function VisitDetail({ visit, onEdit, onDelete, onClose }) {
           <header className="card-head">
             <div>
               <h2>{visit.name}</h2>
-              <p className="muted">{visit.neighbourhood} · {formatDate(visit.visitDate)}</p>
+              <p className="muted">{[visit.neighbourhood, visit.city].filter(Boolean).join(', ')} · {formatDate(visit.visitDate)}</p>
+              {visit.address && (
+                <p className="muted detail-address">
+                  {visit.latitude != null ? (
+                    <a href={`https://www.openstreetmap.org/?mlat=${visit.latitude}&mlon=${visit.longitude}#map=18/${visit.latitude}/${visit.longitude}`} target="_blank" rel="noopener">
+                      {visit.address}
+                    </a>
+                  ) : visit.address}
+                </p>
+              )}
             </div>
             {visit.price != null && <span className="price">{money.format(visit.total ?? visit.price)}</span>}
           </header>

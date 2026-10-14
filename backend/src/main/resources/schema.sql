@@ -36,6 +36,12 @@ ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS photo_url TEXT;
 ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS shared BOOLEAN NOT NULL DEFAULT TRUE;
 CREATE INDEX IF NOT EXISTS idx_cafe_visits_feed ON cafe_visits (shared, visit_date DESC);
 
+-- Where the cafe is. Coordinates come from geocoding the address once, when it's saved.
+ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS address VARCHAR(200);
+ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS city VARCHAR(120);
+
 -- Anything ordered besides the main drink, like a pastry on the side. One visit, many extras.
 CREATE TABLE IF NOT EXISTS visit_extras (
     visit_id   BIGINT        NOT NULL REFERENCES cafe_visits (id) ON DELETE CASCADE,

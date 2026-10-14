@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { money } from '../format.js'
+import { searchAddresses, searchCities } from '../places.js'
+import Autocomplete from './Autocomplete.jsx'
 import PhotoAdjuster from './PhotoAdjuster.jsx'
 
 const today = () => new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local time
@@ -20,6 +22,10 @@ const EMPTY = {
   photoUrl: '',
   shared: true,
   extras: [], // [{ name, price }] for anything besides the main order
+  address: '',
+  city: '',
+  latitude: null,
+  longitude: null,
 }
 
 // API response -> form fields (studySpot comes back, studySession goes out)
@@ -40,6 +46,10 @@ function fromVisit(v) {
     photoUrl: v.photoUrl ?? '',
     shared: v.shared !== false,
     extras: (v.extras ?? []).map((x) => ({ name: x.name, price: String(x.price) })),
+    address: v.address ?? '',
+    city: v.city ?? '',
+    latitude: v.latitude ?? null,
+    longitude: v.longitude ?? null,
   }
 }
 
@@ -49,6 +59,8 @@ function toPayload(form) {
     price: form.price === '' ? null : Number(form.price),
     photoUrl: form.photoUrl || null,
     laptopPolicy: form.laptopPolicy.trim() || null,
+    address: form.address.trim() || null,
+    city: form.city.trim() || null,
     // rows left completely blank are dropped; half-filled ones go through so the backend can flag them
     extras: form.extras
       .filter((x) => x.name.trim() || x.price !== '')
@@ -67,6 +79,10 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const [adjusting, setAdjusting] = useState(null) // photo being positioned, before it's saved to the form
+  // where address suggestions are centred: the picked city, or the visit's own pin when editing
+  const [cityCenter, setCityCenter] = useState(
+    visit?.latitude != null ? { latitude: visit.latitude, longitude: visit.longitude } : null,
+  )
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -78,6 +94,30 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
     setForm((f) => ({ ...f, [field]: value }))
   }
+
+  // Typing a city or address by hand is fine; picking a suggestion also gives exact coordinates.
+  // Editing the address after picking clears the pin so the server looks the new one up.
+  const typeCity = (city) => {
+    setForm((f) => ({ ...f, city }))
+    setCityCenter(null)
+  }
+  const pickCity = (c) => {
+    setForm((f) => ({ ...f, city: c.name }))
+    setCityCenter({ latitude: c.latitude, longitude: c.longitude })
+  }
+  const typeAddress = (address) => setForm((f) => ({ ...f, address, latitude: null, longitude: null }))
+  const pickAddress = (p) =>
+    setForm((f) => ({
+      ...f,
+      address: p.street || p.name,
+      latitude: p.latitude,
+      longitude: p.longitude,
+      // only fill what's still empty, never overwrite what they typed
+      name: f.name || (p.isCafe ? p.name : ''),
+      city: f.city || p.city,
+      neighbourhood: f.neighbourhood || p.area,
+    }))
+  const findAddress = useCallback((q, signal) => searchAddresses(q, cityCenter, signal), [cityCenter])
 
   const setExtra = (i, field) => (e) =>
     setForm((f) => ({ ...f, extras: f.extras.map((x, j) => (j === i ? { ...x, [field]: e.target.value } : x)) }))
@@ -172,9 +212,52 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
             {fieldError('name')}
           </label>
           <label>
-            Neighbourhood
-            <input value={form.neighbourhood} onChange={set('neighbourhood')} list="hoods" placeholder="Ossington" />
-            <datalist id="hoods">
+            City
+            <Autocomplete
+              value={form.city}
+              onChange={typeCity}
+              onPick={pickCity}
+              search={searchCities}
+              minLength={2}
+              placeholder="Toronto"
+              render={(c) => (
+                <>
+                  <strong>{c.name}</strong>
+                  <span className="muted">{[c.region, c.country].filter(Boolean).join(', ')}</span>
+                </>
+              )}
+            />
+            {fieldError('city')}
+          </label>
+        </div>
+
+        <label>
+          Address
+          <Autocomplete
+            value={form.address}
+            onChange={typeAddress}
+            onPick={pickAddress}
+            search={findAddress}
+            placeholder={form.city ? `Search cafes or streets in ${form.city}` : 'Search a cafe or street address'}
+            render={(p) => (
+              <>
+                <strong>{p.isCafe ? p.name : p.street}</strong>
+                <span className="muted">{[p.isCafe ? p.street : p.area, p.city, p.country].filter(Boolean).join(', ')}</span>
+              </>
+            )}
+          />
+          <span className="hint">
+            {form.latitude != null ? 'Pinned on the map.' : 'Optional. Pick a suggestion to pin the cafe on the map.'}
+          </span>
+          {fieldError('address')}
+          {fieldError('coordinatesPaired')}
+        </label>
+
+        <div className="grid-2">
+          <label>
+            Area
+            <input value={form.neighbourhood} onChange={set('neighbourhood')} list="areas" placeholder="Ossington" />
+            <datalist id="areas">
               {neighbourhoods.map((n) => <option key={n} value={n} />)}
             </datalist>
             {fieldError('neighbourhood')}
@@ -184,18 +267,20 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
             <input type="date" value={form.visitDate} max={today()} onChange={set('visitDate')} />
             {fieldError('visitDate')}
           </label>
+        </div>
+
+        <div className="order-row">
+          <label>
+            What you ordered
+            <input value={form.order} onChange={set('order')} placeholder="Iced Vanilla Latte" />
+            {fieldError('order')}
+          </label>
           <label>
             Price
             <input type="number" inputMode="decimal" min="0" step="0.01" value={form.price} onChange={set('price')} placeholder="5.75" />
             {fieldError('price')}
           </label>
         </div>
-
-        <label>
-          What you ordered
-          <input value={form.order} onChange={set('order')} placeholder="Iced Vanilla Latter" />
-          {fieldError('order')}
-        </label>
 
         <div className="extras">
           {form.extras.map((x, i) => (

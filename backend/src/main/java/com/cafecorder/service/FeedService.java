@@ -1,6 +1,7 @@
 package com.cafecorder.service;
 
 import com.cafecorder.dto.FeedDtos.FeedItem;
+import com.cafecorder.dto.FeedDtos.MapCafe;
 import com.cafecorder.dto.FeedDtos.TopCafe;
 import com.cafecorder.repository.CafeRepository;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +22,7 @@ public class FeedService {
 
     static final int PAGE_SIZE = 30;
     static final int TOP_CAFES = 12;
+    static final int MAP_PINS = 500;
 
     private final CafeRepository repository;
 
@@ -39,5 +41,9 @@ public class FeedService {
 
     public List<TopCafe> topCafes() {
         return repository.findTopCafes(TOP_CAFES).stream().map(TopCafe::from).toList();
+    }
+
+    public List<MapCafe> mapCafes() {
+        return repository.findMapCafes(MAP_PINS).stream().map(MapCafe::from).toList();
     }
 }

@@ -49,7 +49,8 @@ class CafeControllerTest {
     private final VisitResponse pilot = new VisitResponse(1L, "Pilot Coffee", "Leslieville",
             LocalDate.of(2026, 9, 1), "Oat flat white", new BigDecimal("5.75"), 5, true,
             true, true, Seating.GOOD, "No restrictions", NoiseLevel.MODERATE, null, true,
-            List.of(new ExtraItem("Almond croissant", new BigDecimal("4.25"))), new BigDecimal("10.00"));
+            List.of(new ExtraItem("Almond croissant", new BigDecimal("4.25"))), new BigDecimal("10.00"),
+            "1 Queen St E", "Toronto", 43.65, -79.38);
 
     @Test
     void visitsNeedAToken() throws Exception {

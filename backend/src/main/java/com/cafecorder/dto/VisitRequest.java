@@ -37,8 +37,20 @@ public record VisitRequest(
         // null counts as true, so visits are shared unless you opt out
         Boolean shared,
         // anything besides the main drink. @Valid checks each item, so errors look like "extras[0].price".
-        @Size(max = 10, message = "up to 10 extra items") List<@Valid ExtraItem> extras
+        @Size(max = 10, message = "up to 10 extra items") List<@Valid ExtraItem> extras,
+        // optional; used to pin the cafe on the map
+        @Size(max = 200) String address,
+        @Size(max = 120) String city,
+        // sent when an address was picked from the search suggestions, so the server doesn't look it up again
+        @DecimalMin("-90") @DecimalMax("90") Double latitude,
+        @DecimalMin("-180") @DecimalMax("180") Double longitude
 ) {
+    // a pin needs both halves
+    @AssertTrue(message = "latitude and longitude go together")
+    public boolean isCoordinatesPaired() {
+        return (latitude == null) == (longitude == null);
+    }
+
     public List<ExtraItem> extrasOrEmpty() {
         return extras == null ? List.of() : extras;
     }

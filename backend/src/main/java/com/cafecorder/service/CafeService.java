@@ -10,12 +10,14 @@ import com.cafecorder.model.Extra;
 import com.cafecorder.model.StudyCafe;
 import com.cafecorder.repository.CafeRepository;
 import com.cafecorder.repository.UserRepository;
+import com.cafecorder.service.Geocoder.Coordinates;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 // What CafeTracker used to do, with Postgres instead of an ArrayList. Every method works on one user's visits.
 @Service
@@ -24,11 +26,13 @@ public class CafeService {
 
     private final CafeRepository repository;
     private final UserRepository users;
+    private final Geocoder geocoder;
 
-    // constructor injection: Spring passes in the repositories, and tests can pass in mocks
-    public CafeService(CafeRepository repository, UserRepository users) {
+    // constructor injection: Spring passes in the dependencies, and tests can pass in mocks
+    public CafeService(CafeRepository repository, UserRepository users, Geocoder geocoder) {
         this.repository = repository;
         this.users = users;
+        this.geocoder = geocoder;
     }
 
     public List<VisitResponse> list(Long userId, String neighbourhood, SortOption sort) {
@@ -55,7 +59,9 @@ public class CafeService {
 
     @Transactional
     public VisitResponse create(Long userId, VisitRequest request) {
-        return VisitResponse.from(repository.save(toEntity(userId, request)));
+        Cafe cafe = toEntity(userId, request);
+        applyAddress(cafe, request, null);
+        return VisitResponse.from(repository.save(cafe));
     }
 
     @Transactional
@@ -65,12 +71,15 @@ public class CafeService {
         // A row can't change its visit_type (or Java class) in place, so switching
         // regular <-> study deletes the old row and saves a new one with a new id.
         if (existing.isStudySpot() != request.study()) {
+            Cafe replacement = toEntity(userId, request);
+            applyAddress(replacement, request, existing);
             repository.delete(existing);
-            return VisitResponse.from(repository.save(toEntity(userId, request)));
+            return VisitResponse.from(repository.save(replacement));
         }
 
         // Same type: just change the fields. The transaction saves them on commit (dirty checking).
         applyBaseFields(existing, request);
+        applyAddress(existing, request, existing);
         if (existing instanceof StudyCafe study) {
             applyStudyFields(study, request);
         }
@@ -121,6 +130,33 @@ public class CafeService {
         cafe.setPhotoUrl(blankToNull(r.photoUrl()));
         cafe.setShared(r.isShareable());
         cafe.setExtras(toExtras(r));
+    }
+
+    // Coordinates picked in the app win. Otherwise only a new or changed address is geocoded;
+    // an unchanged one keeps the coordinates it already has.
+    private void applyAddress(Cafe target, VisitRequest r, Cafe before) {
+        String address = trimToNull(r.address());
+        String city = trimToNull(r.city());
+        if (address == null) {
+            target.setLocation(null, city, null, null);
+            return;
+        }
+        if (r.latitude() != null) {
+            target.setLocation(address, city, r.latitude(), r.longitude());
+            return;
+        }
+        if (before != null && Objects.equals(address, before.getAddress()) && Objects.equals(city, before.getCity())) {
+            target.setLocation(address, city, before.getLatitude(), before.getLongitude());
+            return;
+        }
+        Optional<Coordinates> found = geocoder.locate(city == null ? address : address + ", " + city);
+        target.setLocation(address, city,
+                found.map(Coordinates::latitude).orElse(null),
+                found.map(Coordinates::longitude).orElse(null));
+    }
+
+    private static String trimToNull(String s) {
+        return s == null ? null : blankToNull(s.trim());
     }
 
     private static String blankToNull(String s) {

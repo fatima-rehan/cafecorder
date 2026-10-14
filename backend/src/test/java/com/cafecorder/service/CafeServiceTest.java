@@ -42,6 +42,9 @@ class CafeServiceTest {
     @Mock
     private UserRepository users;
 
+    @Mock
+    private Geocoder geocoder;
+
     @InjectMocks
     private CafeService service;
 
@@ -49,20 +52,89 @@ class CafeServiceTest {
 
     private VisitRequest regularVisit() {
         return new VisitRequest("  Sam James  ", " Harbord ", LocalDate.of(2026, 9, 10), "Cortado",
-                new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, false, null);
+                new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, false, null, null, null, null, null);
+    }
+
+    private VisitRequest visitAt(String address, String city, Double lat, Double lng) {
+        return new VisitRequest("Sam James", "Harbord", LocalDate.of(2026, 9, 10), "Cortado",
+                new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, true, null, address, city, lat, lng);
+    }
+
+    private VisitRequest visitAt(String address) {
+        return visitAt(address, null, null, null);
+    }
+
+    @Test
+    void anAddressPickedInTheAppKeepsItsCoordinates() {
+        when(users.getReferenceById(ME)).thenReturn(me);
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        VisitResponse result = service.create(ME, visitAt("117 Ossington Avenue", "Toronto", 43.6466, -79.4196));
+
+        assertThat(result.city()).isEqualTo("Toronto");
+        assertThat(result.latitude()).isEqualTo(43.6466);
+        verifyNoInteractions(geocoder);
+    }
+
+    @Test
+    void aTypedAddressIsLookedUpWithItsCity() {
+        when(users.getReferenceById(ME)).thenReturn(me);
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(geocoder.locate("Place des Vosges, Paris")).thenReturn(Optional.of(new Geocoder.Coordinates(48.85, 2.36)));
+
+        VisitResponse result = service.create(ME, visitAt("Place des Vosges", "Paris", null, null));
+
+        assertThat(result.longitude()).isEqualTo(2.36);
+    }
+
+    @Test
+    void anAddressIsLookedUpAndPinned() {
+        when(users.getReferenceById(ME)).thenReturn(me);
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(geocoder.locate("297 Harbord St, Toronto")).thenReturn(Optional.of(new Geocoder.Coordinates(43.66, -79.42)));
+
+        VisitResponse result = service.create(ME, visitAt(" 297 Harbord St, Toronto "));
+
+        assertThat(result.address()).isEqualTo("297 Harbord St, Toronto");
+        assertThat(result.latitude()).isEqualTo(43.66);
+        assertThat(result.longitude()).isEqualTo(-79.42);
+    }
+
+    @Test
+    void anAddressThatIsNotFoundStillSaves() {
+        when(users.getReferenceById(ME)).thenReturn(me);
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(geocoder.locate("nowhere at all")).thenReturn(Optional.empty());
+
+        VisitResponse result = service.create(ME, visitAt("nowhere at all"));
+
+        assertThat(result.address()).isEqualTo("nowhere at all");
+        assertThat(result.latitude()).isNull();
+    }
+
+    @Test
+    void editingWithoutChangingTheAddressSkipsTheLookup() {
+        Cafe existing = new Cafe("Sam James", "Harbord", LocalDate.of(2026, 1, 1), "Tea", BigDecimal.ONE, 2);
+        existing.setLocation("297 Harbord St, Toronto", null, 43.66, -79.42);
+        when(repository.findByIdAndUserId(5L, ME)).thenReturn(Optional.of(existing));
+
+        VisitResponse result = service.update(ME, 5L, visitAt("297 Harbord St, Toronto"));
+
+        assertThat(result.latitude()).isEqualTo(43.66);
+        verifyNoInteractions(geocoder);
     }
 
     private VisitRequest studyVisit() {
         return new VisitRequest("Sam James", "Harbord", LocalDate.of(2026, 9, 10), "Cortado",
                 new BigDecimal("4.50"), 4, true, true, false, Seating.LIMITED, "Before 5pm", NoiseLevel.QUIET,
-                "https://example.com/cortado.jpg", null, null);
+                "https://example.com/cortado.jpg", null, null, null, null, null, null);
     }
 
     private VisitRequest visitWithExtras() {
         return new VisitRequest("Sam James", "Harbord", LocalDate.of(2026, 9, 10), "Cortado",
                 new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, true,
                 List.of(new ExtraItem(" Almond croissant ", new BigDecimal("4.25")),
-                        new ExtraItem("Cookie", new BigDecimal("2.10"))));
+                        new ExtraItem("Cookie", new BigDecimal("2.10"))), null, null, null, null);
     }
 
     @Test

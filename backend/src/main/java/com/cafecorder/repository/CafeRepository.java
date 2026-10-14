@@ -79,4 +79,33 @@ public interface CafeRepository extends JpaRepository<Cafe, Long> {
         Long getVisits();
         String getCoverPhoto();
     }
+
+    // Map pins: shared visits that have coordinates, one row per cafe (name + address, ignoring case)
+    @Query(value = """
+            select min(c.name)                               as "name",
+                   min(c.address)                            as "address",
+                   min(c.city)                               as "city",
+                   avg(c.latitude)                           as "latitude",
+                   avg(c.longitude)                          as "longitude",
+                   count(*)                                  as "visits",
+                   avg(c.rating) filter (where c.rating > 0) as "averageRating",
+                   (array_agg(c.photo_url order by c.rating desc, c.visit_date desc)
+                      filter (where c.photo_url is not null))[1] as "coverPhoto"
+            from cafe_visits c
+            where c.shared = true and c.latitude is not null and c.longitude is not null
+            group by lower(c.name), lower(c.address)
+            order by count(*) desc
+            limit :limit""", nativeQuery = true)
+    List<MapCafeView> findMapCafes(@Param("limit") int limit);
+
+    interface MapCafeView {
+        String getName();
+        String getAddress();
+        String getCity();
+        Double getLatitude();
+        Double getLongitude();
+        Long getVisits();
+        BigDecimal getAverageRating();
+        String getCoverPhoto();
+    }
 }

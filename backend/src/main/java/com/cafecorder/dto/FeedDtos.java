@@ -1,6 +1,7 @@
 package com.cafecorder.dto;
 
 import com.cafecorder.model.Cafe;
+import com.cafecorder.repository.CafeRepository.MapCafeView;
 import com.cafecorder.repository.CafeRepository.TopCafeView;
 
 import java.math.BigDecimal;
@@ -16,12 +17,24 @@ public final class FeedDtos {
 
     public record FeedItem(Long id, String name, String neighbourhood, LocalDate visitDate, String order,
                            BigDecimal price, List<ExtraItem> extras, BigDecimal total,
-                           int rating, String photoUrl, boolean studySpot, String author) {
+                           int rating, String photoUrl, boolean studySpot, String author, String address, String city) {
         public static FeedItem from(Cafe c) {
             String author = c.getUser() != null ? c.getUser().getDisplayName() : "A CafeCorder user";
             return new FeedItem(c.getId(), c.getName(), c.getNeighbourhood(), c.getVisitDate(), c.getOrder(),
                     c.getPrice(), ExtraItem.from(c.getExtras()), c.getTotal(),
-                    c.getRating(), c.getPhotoUrl(), c.isStudySpot(), author);
+                    c.getRating(), c.getPhotoUrl(), c.isStudySpot(), author, c.getAddress(), c.getCity());
+        }
+    }
+
+    // One pin on the map: every shared visit to the same cafe (name + address) rolled into one.
+    // averageRating is null when none of the visits were rated.
+    public record MapCafe(String name, String address, String city, double latitude, double longitude, long visits,
+                          Double averageRating, String coverPhoto) {
+        public static MapCafe from(MapCafeView v) {
+            Double rating = v.getAverageRating() == null ? null
+                    : v.getAverageRating().setScale(1, RoundingMode.HALF_UP).doubleValue();
+            return new MapCafe(v.getName(), v.getAddress(), v.getCity(), v.getLatitude(), v.getLongitude(), v.getVisits(),
+                    rating, v.getCoverPhoto());
         }
     }
 

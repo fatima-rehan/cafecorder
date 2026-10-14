@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 import { photoFor } from '../drinkArt.js'
+import CafeMap from './CafeMap.jsx'
 import GalleryGrid from './GalleryGrid.jsx'
 import Rating from './Rating.jsx'
 import VisitDetail from './VisitDetail.jsx'
@@ -8,6 +9,7 @@ import VisitDetail from './VisitDetail.jsx'
 const TABS = [
   { value: 'top', label: 'Top cafes' },
   { value: 'photos', label: 'Photos' },
+  { value: 'map', label: 'Map' },
 ]
 
 const PHOTO_SORTS = [
@@ -23,6 +25,7 @@ export default function Explore({ signedIn, onSignUp }) {
   const [photoSort, setPhotoSort] = useState('RECENT')
   const [topCafes, setTopCafes] = useState(null)
   const [photos, setPhotos] = useState(null)
+  const [mapCafes, setMapCafes] = useState(null)
   const [viewing, setViewing] = useState(null)
   const [error, setError] = useState('')
 
@@ -34,11 +37,16 @@ export default function Explore({ signedIn, onSignUp }) {
     api.feed.photos(photoSort).then(setPhotos).catch(() => setError(FEED_ERROR))
   }, [photoSort])
 
+  // only fetched once the map is opened
+  useEffect(() => {
+    if (tab === 'map' && !mapCafes) api.feed.map().then(setMapCafes).catch(() => setError(FEED_ERROR))
+  }, [tab, mapCafes])
+
   return (
     <>
       <header className="page-head">
         <h2>Explore</h2>
-        <p className="muted">What people across Toronto are drinking, and where.</p>
+        <p className="muted">What people are drinking, and where.</p>
       </header>
 
       {!signedIn && (
@@ -98,6 +106,15 @@ export default function Explore({ signedIn, onSignUp }) {
         photos.length === 0
           ? <p className="empty">Nothing shared yet.</p>
           : <GalleryGrid visits={photos} onOpen={setViewing} showAuthor />
+      )}
+
+      {tab === 'map' && (
+        <>
+          {mapCafes?.length === 0 && (
+            <p className="empty">No cafes on the map yet. Add an address when you log a visit to pin it here.</p>
+          )}
+          <CafeMap cafes={mapCafes ?? []} />
+        </>
       )}
 
       {viewing && <VisitDetail visit={viewing} onClose={() => setViewing(null)} />}

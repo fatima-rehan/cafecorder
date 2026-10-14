@@ -112,8 +112,8 @@ export default function MyVisits({ user, composing, onComposeDone }) {
       <StatsBar stats={stats} />
 
       <section className="controls">
-        <select value={neighbourhood} onChange={(e) => setNeighbourhood(e.target.value)} aria-label="Neighbourhood">
-          <option value="">All neighbourhoods</option>
+        <select value={neighbourhood} onChange={(e) => setNeighbourhood(e.target.value)} aria-label="Area">
+          <option value="">All areas</option>
           {neighbourhoods.map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
         <div className="control-group">

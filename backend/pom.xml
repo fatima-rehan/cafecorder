@@ -12,7 +12,7 @@
 	<artifactId>cafecorder</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>cafecorder</name>
-	<description>CafeCorder REST API: a logbook for Toronto cafe visits</description>
+	<description>CafeCorder REST API: a logbook for cafe visits</description>
 
 	<properties>
 		<java.version>21</java.version>

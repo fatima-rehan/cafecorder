@@ -1,6 +1,6 @@
 # CafeCorder
 
-A logbook for Toronto cafe visits. Log what you ordered, what you paid and how you'd rate it, mark study sessions (wifi, outlets, seating, noise), add a photo, and share your favourites on a public feed.
+A logbook for cafe visits, wherever you are. Log what you ordered, what you paid and how you'd rate it, mark study sessions (wifi, outlets, seating, noise), add a photo, and share your favourites on a public feed.
 
 Visit @ https://cafecorder.vercel.app/
 
@@ -11,7 +11,8 @@ Visit @ https://cafecorder.vercel.app/
 - **Stats:** total visits, unique cafes, total spent and average rating.
 - **Extras:** add anything else you ordered, like a pastry on the side, each with its own price. Totals include them.
 - **Photos:** upload a photo, then drag and zoom to frame it. It's cropped and resized in the browser before upload.
-- **Explore:** a public feed of shared visits and a leaderboard of the top-rated cafes.
+- **Explore:** a public feed of shared visits, a leaderboard of the top-rated cafes, and a map of shared cafes with your location.
+- **Map:** add an address and the cafe gets pinned. Addresses are geocoded once with OpenStreetMap's Nominatim and the map uses Leaflet with OpenStreetMap tiles.
 - **Accounts:** sign up and log in. Every visit is private to its owner unless shared.
 
 ## Tech stack
@@ -53,6 +54,7 @@ controller  ->  service  ->  repository
 | GET | `/api/visits/neighbourhoods` | Neighbourhoods I've visited |
 | GET | `/api/feed/photos` | Public feed (`?sort=RECENT\|TOP`) |
 | GET | `/api/feed/top-cafes` | Top-rated cafes |
+| GET | `/api/feed/map` | Shared cafes with coordinates, for the map |
 
 ## Running locally
 

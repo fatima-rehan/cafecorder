@@ -78,5 +78,6 @@ export const api = {
   feed: {
     photos: (sort) => request(`/feed/photos?sort=${sort}`),
     topCafes: () => request('/feed/top-cafes'),
+    map: () => request('/feed/map'),
   },
 }

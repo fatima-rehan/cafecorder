@@ -19,7 +19,7 @@ export default function VisitCard({ visit, onOpen, onEdit, onDelete }) {
           <div>
             <h3>{visit.name}</h3>
             <p className="muted">
-              {visit.neighbourhood} · {formatDate(visit.visitDate)}
+              {[visit.neighbourhood, visit.city].filter(Boolean).join(', ')} · {formatDate(visit.visitDate)}
               {visit.shared === false && <span className="private-tag">Private</span>}
             </p>
           </div>

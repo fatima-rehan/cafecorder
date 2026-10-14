@@ -13,7 +13,7 @@ export default function Landing({ onEnter }) {
   return (
     <main className={`landing ${entering ? 'entering' : ''}`}>
       <div className="landing-copy">
-        <p className="eyebrow">A little logbook for Toronto cafes</p>
+        <p className="eyebrow">A little logbook for your cafe visits</p>
         <h1>CafeCorder</h1>
       </div>
 
