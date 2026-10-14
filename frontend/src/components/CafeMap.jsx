@@ -4,17 +4,22 @@ import 'leaflet/dist/leaflet.css'
 import { photoFor } from '../drinkArt.js'
 
 // Pins are inline SVG (divIcon), so there are no marker image files for the bundler to lose
+// Same hex values as the theme variables in styles.css, since an SVG string can't read CSS vars
+const ESPRESSO = '#2b1a12'
+const CREMA = '#c8905a'
+const CREAM = '#fffcf7'
+
 const pin = (fill, inner) => `
   <svg viewBox="0 0 36 46" width="36" height="46" aria-hidden="true">
-    <path d="M18 45C18 45 3 28.5 3 17a15 15 0 0 1 30 0c0 11.5-15 28-15 28z" fill="${fill}" stroke="#fff" stroke-width="2"/>
+    <path d="M18 45C18 45 3 28.5 3 17a15 15 0 0 1 30 0c0 11.5-15 28-15 28z" fill="${fill}" stroke="${CREAM}" stroke-width="2"/>
     ${inner}
   </svg>`
 
-const CUP = '<path d="M11 12h12v5a6 6 0 0 1-12 0zM23 13.5h1.5a2.5 2.5 0 0 1 0 5H23" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>'
-const DOT = '<circle cx="18" cy="17" r="6" fill="#fff"/>'
+const CUP = `<path d="M11 12h12v5a6 6 0 0 1-12 0zM23 13.5h1.5a2.5 2.5 0 0 1 0 5H23" fill="none" stroke="${CREAM}" stroke-width="2" stroke-linejoin="round"/>`
+const DOT = `<circle cx="18" cy="17" r="6" fill="${CREAM}"/>`
 
-const cafeIcon = L.divIcon({ className: 'map-pin', html: pin('#5a3a26', CUP), iconSize: [36, 46], iconAnchor: [18, 45], popupAnchor: [0, -40] })
-const youIcon = L.divIcon({ className: 'map-pin', html: pin('#2f6fd6', DOT), iconSize: [36, 46], iconAnchor: [18, 45], popupAnchor: [0, -40] })
+const cafeIcon = L.divIcon({ className: 'map-pin', html: pin(ESPRESSO, CUP), iconSize: [36, 46], iconAnchor: [18, 45], popupAnchor: [0, -40] })
+const youIcon = L.divIcon({ className: 'map-pin', html: pin(CREMA, DOT), iconSize: [36, 46], iconAnchor: [18, 45], popupAnchor: [0, -40] })
 
 // Popup built with DOM nodes and textContent, so a cafe name like "<img onerror=...>" stays plain text
 function el(tag, className, text) {
