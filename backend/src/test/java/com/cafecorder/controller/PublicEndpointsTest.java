@@ -73,6 +73,17 @@ class PublicEndpointsTest {
     }
 
     @Test
+    void anExpiredTokenLeftInTheBrowserDoesNotBreakTheFeed() throws Exception {
+        when(feed.mapCafes()).thenReturn(List.of());
+
+        mvc.perform(get("/api/feed/map").header("Authorization", "Bearer expired.or.garbage"))
+                .andExpect(status().isOk());
+        // but it's still rejected anywhere that needs a login
+        mvc.perform(get("/api/auth/me").header("Authorization", "Bearer expired.or.garbage"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void mapPinsAreOpenToEveryone() throws Exception {
         when(feed.mapCafes()).thenReturn(List.of(
                 new MapCafe("18Feet", "1 Queen St W, Toronto", "Toronto", 43.65, -79.38, 3, 4.7, null)));

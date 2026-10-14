@@ -28,8 +28,9 @@ export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn
 }
 
-async function request(path, { method = 'GET', body } = {}) {
-  const sentToken = token
+// open: true for public endpoints, which never need the token (and shouldn't log you out over a stale one)
+async function request(path, { method = 'GET', body, open = false } = {}) {
+  const sentToken = open ? null : token
   const headers = {}
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (sentToken) headers.Authorization = `Bearer ${sentToken}`
@@ -76,8 +77,8 @@ export const api = {
     remove: (id) => request(`/visits/${id}`, { method: 'DELETE' }),
   },
   feed: {
-    photos: (sort) => request(`/feed/photos?sort=${sort}`),
-    topCafes: () => request('/feed/top-cafes'),
-    map: () => request('/feed/map'),
+    photos: (sort) => request(`/feed/photos?sort=${sort}`, { open: true }),
+    topCafes: () => request('/feed/top-cafes', { open: true }),
+    map: () => request('/feed/map', { open: true }),
   },
 }

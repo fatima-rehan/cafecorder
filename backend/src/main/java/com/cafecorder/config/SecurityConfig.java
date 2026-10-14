@@ -15,7 +15,11 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -47,8 +51,16 @@ public class SecurityConfig {
         this.allowedOrigins = allowedOrigins;
     }
 
+    private static final RequestMatcher PUBLIC_FEED =
+            PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.GET, "/api/feed/**");
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // The feed is public, so don't even read a token there: an expired one left in someone's
+        // browser would otherwise turn browsing Explore into a 401.
+        DefaultBearerTokenResolver bearer = new DefaultBearerTokenResolver();
+        BearerTokenResolver skipOnPublicFeed = request -> PUBLIC_FEED.matches(request) ? null : bearer.resolve(request);
+
         return http
                 // CSRF attacks ride on cookies the browser sends automatically. We use no cookies, only a header.
                 .csrf(csrf -> csrf.disable())
@@ -56,11 +68,11 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/feed/**").permitAll()
+                        .requestMatchers(PUBLIC_FEED).permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 // checks "Authorization: Bearer ..." on every request; missing or bad token = 401
-                .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()))
+                .oauth2ResourceServer(oauth -> oauth.bearerTokenResolver(skipOnPublicFeed).jwt(Customizer.withDefaults()))
                 .build();
     }
 
