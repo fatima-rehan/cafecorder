@@ -87,6 +87,7 @@ public interface CafeRepository extends JpaRepository<Cafe, Long> {
 
     // Native SQL because JPQL has no array_agg/FILTER. Groups visits into cafes (name + neighbourhood,
     // ignoring case), ranks by average rating then visit count, and picks the best-rated photo as the cover.
+    // sort = 'RECENT' puts the cafes with the latest visit first instead.
     @Query(value = """
             select min(c.name)          as "name",
                    min(c.neighbourhood) as "neighbourhood",
@@ -101,9 +102,11 @@ public interface CafeRepository extends JpaRepository<Cafe, Long> {
             group by lower(c.name), lower(c.neighbourhood)
             having cast(:kind as varchar) is null
                 or bool_or(exists (select 1 from visit_kinds k where k.visit_id = c.id and k.kind = cast(:kind as varchar)))
-            order by avg(c.rating) desc, count(*) desc
+            order by case when cast(:sort as varchar) = 'RECENT' then max(c.visit_date) end desc nulls last,
+                     avg(c.rating) desc, count(*) desc
             limit :limit""", nativeQuery = true)
-    List<TopCafeView> findTopCafes(@Param("kind") String kind, @Param("city") String city, @Param("limit") int limit);
+    List<TopCafeView> findTopCafes(@Param("kind") String kind, @Param("city") String city, @Param("sort") String sort,
+                                   @Param("limit") int limit);
 
     // Spring Data fills this in from the column aliases above
     interface TopCafeView {

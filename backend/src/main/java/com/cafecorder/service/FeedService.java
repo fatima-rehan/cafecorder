@@ -53,8 +53,9 @@ public class FeedService {
         return visits.stream().map(FeedItem::from).toList();
     }
 
-    public List<TopCafe> topCafes(CafeKind kind, String city) {
-        return repository.findTopCafes(nameOf(kind), trimToNull(city), TOP_CAFES).stream().map(TopCafe::from).toList();
+    public List<TopCafe> topCafes(FeedSort sort, CafeKind kind, String city) {
+        return repository.findTopCafes(nameOf(kind), trimToNull(city), sort.name(), TOP_CAFES).stream()
+                .map(TopCafe::from).toList();
     }
 
     public List<MapCafe> mapCafes(CafeKind kind, String city) {

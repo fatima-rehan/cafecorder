@@ -33,10 +33,12 @@ public class FeedController {
         return feed.photos(sort, kind, city, page);
     }
 
+    // GET /api/feed/top-cafes?sort=RECENT&kind=MATCHA&city=Toronto
     @GetMapping("/top-cafes")
-    public List<TopCafe> topCafes(@RequestParam(required = false) CafeKind kind,
+    public List<TopCafe> topCafes(@RequestParam(defaultValue = "TOP") FeedSort sort,
+                                  @RequestParam(required = false) CafeKind kind,
                                   @RequestParam(required = false) String city) {
-        return feed.topCafes(kind, city);
+        return feed.topCafes(sort, kind, city);
     }
 
     @GetMapping("/map")

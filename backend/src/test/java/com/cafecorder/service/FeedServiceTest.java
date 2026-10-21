@@ -62,15 +62,15 @@ class FeedServiceTest {
         when(repository.findBySharedTrueAndKindsContaining(eq(CafeKind.MATCHA), any())).thenReturn(List.of());
 
         feed.photos(FeedSort.RECENT, CafeKind.MATCHA, null, 0);
-        feed.topCafes(CafeKind.MATCHA, null);
+        feed.topCafes(FeedSort.TOP, CafeKind.MATCHA, null);
         feed.mapCafes(CafeKind.MATCHA, null);
-        feed.topCafes(null, null);
+        feed.topCafes(FeedSort.RECENT, null, null);
 
         verify(repository).findBySharedTrueAndKindsContaining(eq(CafeKind.MATCHA), any());
         verify(repository, never()).findBySharedTrue(any());
-        verify(repository).findTopCafes("MATCHA", null, 12);
+        verify(repository).findTopCafes("MATCHA", null, "TOP", 12);
         verify(repository).findMapCafes("MATCHA", null, 500);
-        verify(repository).findTopCafes(null, null, 12);
+        verify(repository).findTopCafes(null, null, "RECENT", 12);
     }
 
     @Test
@@ -83,13 +83,13 @@ class FeedServiceTest {
         feed.photos(FeedSort.RECENT, null, " Dubai ", 0);
         feed.photos(FeedSort.RECENT, CafeKind.YEMENI, "Dubai", 0);
         feed.photos(FeedSort.RECENT, null, "  ", 0);
-        feed.topCafes(CafeKind.YEMENI, "Dubai");
+        feed.topCafes(FeedSort.TOP, CafeKind.YEMENI, "Dubai");
         feed.mapCafes(null, " Dubai");
 
         verify(repository).findBySharedTrueAndCityIgnoreCase(eq("Dubai"), any());
         verify(repository).findBySharedTrueAndCityIgnoreCaseAndKindsContaining(eq("Dubai"), eq(CafeKind.YEMENI), any());
         verify(repository).findBySharedTrue(any());
-        verify(repository).findTopCafes("YEMENI", "Dubai", 12);
+        verify(repository).findTopCafes("YEMENI", "Dubai", "TOP", 12);
         verify(repository).findMapCafes(null, "Dubai", 500);
     }
 
@@ -121,9 +121,9 @@ class FeedServiceTest {
         when(view.getNeighbourhood()).thenReturn("Queen West");
         when(view.getAverageRating()).thenReturn(new BigDecimal("4.66666"));
         when(view.getVisits()).thenReturn(3L);
-        when(repository.findTopCafes(null, null, 12)).thenReturn(List.of(view));
+        when(repository.findTopCafes(null, null, "TOP", 12)).thenReturn(List.of(view));
 
-        List<TopCafe> top = feed.topCafes(null, null);
+        List<TopCafe> top = feed.topCafes(FeedSort.TOP, null, null);
 
         assertThat(top).singleElement().satisfies(c -> {
             assertThat(c.averageRating()).isEqualTo(4.7);

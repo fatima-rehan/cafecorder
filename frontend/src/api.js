@@ -74,7 +74,7 @@ export const api = {
   },
   feed: {
     photos: (sort, kind, city, page = 0) => request(`/feed/photos?${query({ sort, kind, city, page })}`, { open: true }),
-    topCafes: (kind, city) => request(`/feed/top-cafes?${query({ kind, city })}`, { open: true }),
+    topCafes: (sort, kind, city) => request(`/feed/top-cafes?${query({ sort, kind, city })}`, { open: true }),
     map: (kind, city) => request(`/feed/map?${query({ kind, city })}`, { open: true }),
     cities: () => request('/feed/cities', { open: true }),
   },

@@ -14,7 +14,7 @@ const TABS = [
   { value: 'map', label: 'Map' },
 ]
 
-const PHOTO_SORTS = [
+const SORTS = [
   { value: 'RECENT', label: 'Newest' },
   { value: 'TOP', label: 'Top rated' },
 ]
@@ -26,7 +26,10 @@ const PAGE_SIZE = 30
 // Public: what everyone has shared. Works signed in or not.
 export default function Explore({ signedIn, onSignUp }) {
   const [tab, setTab] = useState('top')
+  const [topSort, setTopSort] = useState('TOP')
   const [photoSort, setPhotoSort] = useState('RECENT')
+  // each tab keeps its own sort; the map has none
+  const [sort, setSort] = tab === 'top' ? [topSort, setTopSort] : [photoSort, setPhotoSort]
   const [kind, setKind] = useState('') // '' = all types
   const [city, setCity] = useState('') // '' = all cities
   const [cities, setCities] = useState([])
@@ -56,9 +59,9 @@ export default function Explore({ signedIn, onSignUp }) {
   useEffect(() => {
     let current = true
     setTopCafes(null)
-    api.feed.topCafes(kind, city).then((cafes) => current && setTopCafes(cafes)).catch(() => current && setError(FEED_ERROR))
+    api.feed.topCafes(topSort, kind, city).then((cafes) => current && setTopCafes(cafes)).catch(() => current && setError(FEED_ERROR))
     return () => { current = false }
-  }, [kind, city])
+  }, [topSort, kind, city])
 
   // a new sort or filter starts over from the first page
   useEffect(() => {
@@ -138,10 +141,10 @@ export default function Explore({ signedIn, onSignUp }) {
               </button>
             ))}
           </div>
-          {tab === 'photos' && (
-            <div className="segmented" role="group" aria-label="Sort photos">
-              {PHOTO_SORTS.map((s) => (
-                <button key={s.value} className={photoSort === s.value ? 'active' : ''} onClick={() => setPhotoSort(s.value)}>
+          {tab !== 'map' && (
+            <div className="segmented" role="group" aria-label="Sort">
+              {SORTS.map((s) => (
+                <button key={s.value} className={sort === s.value ? 'active' : ''} onClick={() => setSort(s.value)}>
                   {s.label}
                 </button>
               ))}

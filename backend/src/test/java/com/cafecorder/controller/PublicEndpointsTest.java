@@ -85,7 +85,7 @@ class PublicEndpointsTest {
     @Test
     void guestsCanFilterEveryTabByKindAndCity() throws Exception {
         when(feed.photos(FeedSort.RECENT, CafeKind.YEMENI, "Dubai", 0)).thenReturn(List.of());
-        when(feed.topCafes(CafeKind.YEMENI, "Dubai")).thenReturn(List.of());
+        when(feed.topCafes(FeedSort.TOP, CafeKind.YEMENI, "Dubai")).thenReturn(List.of());
         when(feed.mapCafes(CafeKind.YEMENI, "Dubai")).thenReturn(List.of());
 
         for (String tab : List.of("photos", "top-cafes", "map")) {
@@ -94,7 +94,7 @@ class PublicEndpointsTest {
         }
 
         verify(feed).photos(FeedSort.RECENT, CafeKind.YEMENI, "Dubai", 0);
-        verify(feed).topCafes(CafeKind.YEMENI, "Dubai");
+        verify(feed).topCafes(FeedSort.TOP, CafeKind.YEMENI, "Dubai");
         verify(feed).mapCafes(CafeKind.YEMENI, "Dubai");
     }
 
@@ -109,9 +109,10 @@ class PublicEndpointsTest {
 
     @Test
     void topCafesAreOpenToEveryone() throws Exception {
-        when(feed.topCafes(null, null)).thenReturn(List.of(new TopCafe("18Feet", "Queen West", "Toronto", 4.8, 5, null)));
+        when(feed.topCafes(FeedSort.RECENT, null, null))
+                .thenReturn(List.of(new TopCafe("18Feet", "Queen West", "Toronto", 4.8, 5, null)));
 
-        mvc.perform(get("/api/feed/top-cafes"))
+        mvc.perform(get("/api/feed/top-cafes").param("sort", "RECENT"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].city").value("Toronto"))
                 .andExpect(jsonPath("$[0].averageRating").value(4.8))
