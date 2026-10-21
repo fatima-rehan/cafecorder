@@ -4,5 +4,8 @@ export const money = new Intl.NumberFormat('en-CA', { style: 'currency', currenc
 const shortDate = new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 export const formatDate = (iso) => shortDate.format(new Date(iso))
 
+// "Ossington - Toronto", or just whichever half is there
+export const formatPlace = ({ neighbourhood, city }) => [neighbourhood, city].filter(Boolean).join(' - ')
+
 // "LIMITED" -> "Limited"
 export const pretty = (s) => (s ? s.charAt(0) + s.slice(1).toLowerCase() : '')

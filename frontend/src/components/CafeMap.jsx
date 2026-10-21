@@ -50,11 +50,6 @@ function popupFor(cafe, onOpenVisit) {
     }
     box.append(list)
   }
-  const link = el('a', null, 'Open in OpenStreetMap')
-  link.href = `https://www.openstreetmap.org/?mlat=${cafe.latitude}&mlon=${cafe.longitude}#map=18/${cafe.latitude}/${cafe.longitude}`
-  link.target = '_blank'
-  link.rel = 'noopener'
-  box.append(link)
   return box
 }
 

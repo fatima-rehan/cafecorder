@@ -1,6 +1,7 @@
 package com.cafecorder.repository;
 
 import com.cafecorder.model.Cafe;
+import com.cafecorder.model.CafeKind;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -19,6 +20,12 @@ public interface CafeRepository extends JpaRepository<Cafe, Long> {
     List<Cafe> findByUserId(Long userId, Sort sort);
 
     List<Cafe> findByUserIdAndNeighbourhoodIgnoreCase(Long userId, String neighbourhood, Sort sort);
+
+    // "Containing" on a collection = visits tagged with that kind
+    List<Cafe> findByUserIdAndKindsContaining(Long userId, CafeKind kind, Sort sort);
+
+    List<Cafe> findByUserIdAndNeighbourhoodIgnoreCaseAndKindsContaining(Long userId, String neighbourhood,
+                                                                        CafeKind kind, Sort sort);
 
     // id AND owner: someone else's visit simply isn't found, so it's a 404 rather than a 403
     // (a 403 would confirm the id exists)
@@ -55,26 +62,54 @@ public interface CafeRepository extends JpaRepository<Cafe, Long> {
     @EntityGraph(attributePaths = "user")
     List<Cafe> findBySharedTrue(Pageable pageable);
 
+    @EntityGraph(attributePaths = "user")
+    List<Cafe> findBySharedTrueAndKindsContaining(CafeKind kind, Pageable pageable);
+
+    @EntityGraph(attributePaths = "user")
+    List<Cafe> findBySharedTrueAndCityIgnoreCase(String city, Pageable pageable);
+
+    @EntityGraph(attributePaths = "user")
+    List<Cafe> findBySharedTrueAndCityIgnoreCaseAndKindsContaining(String city, CafeKind kind, Pageable pageable);
+
+    // Cities that have shared visits, for the Explore filter. "dubai" and "Dubai" count once,
+    // shown with a capital if anyone typed it that way.
+    @Query(value = """
+            select (array_agg(trim(city) order by left(trim(city), 1) = upper(left(trim(city), 1)) desc, trim(city)))[1]
+            from cafe_visits
+            where shared = true and city is not null and trim(city) <> ''
+            group by lower(trim(city))
+            order by lower(trim(city))""", nativeQuery = true)
+    List<String> findSharedCities();
+
+    // For the two queries below: kind is a CafeKind name and city a city name, either null for all.
+    // A cafe counts as a kind if any of its shared visits was tagged with it, and all of its visits
+    // still count toward the rating. The casts tell Postgres the parameter types when they're null.
+
     // Native SQL because JPQL has no array_agg/FILTER. Groups visits into cafes (name + neighbourhood,
     // ignoring case), ranks by average rating then visit count, and picks the best-rated photo as the cover.
     @Query(value = """
             select min(c.name)          as "name",
                    min(c.neighbourhood) as "neighbourhood",
+                   min(c.city)          as "city",
                    avg(c.rating)        as "averageRating",
                    count(*)             as "visits",
                    (array_agg(c.photo_url order by c.rating desc, c.visit_date desc)
                       filter (where c.photo_url is not null))[1] as "coverPhoto"
             from cafe_visits c
             where c.shared = true and c.rating > 0
+              and (cast(:city as varchar) is null or lower(trim(c.city)) = lower(trim(cast(:city as varchar))))
             group by lower(c.name), lower(c.neighbourhood)
+            having cast(:kind as varchar) is null
+                or bool_or(exists (select 1 from visit_kinds k where k.visit_id = c.id and k.kind = cast(:kind as varchar)))
             order by avg(c.rating) desc, count(*) desc
             limit :limit""", nativeQuery = true)
-    List<TopCafeView> findTopCafes(@Param("limit") int limit);
+    List<TopCafeView> findTopCafes(@Param("kind") String kind, @Param("city") String city, @Param("limit") int limit);
 
     // Spring Data fills this in from the column aliases above
     interface TopCafeView {
         String getName();
         String getNeighbourhood();
+        String getCity();
         BigDecimal getAverageRating();
         Long getVisits();
         String getCoverPhoto();
@@ -93,10 +128,13 @@ public interface CafeRepository extends JpaRepository<Cafe, Long> {
                       filter (where c.photo_url is not null))[1] as "coverPhoto"
             from cafe_visits c
             where c.shared = true and c.latitude is not null and c.longitude is not null
+              and (cast(:city as varchar) is null or lower(trim(c.city)) = lower(trim(cast(:city as varchar))))
             group by lower(c.name), lower(c.address)
+            having cast(:kind as varchar) is null
+                or bool_or(exists (select 1 from visit_kinds k where k.visit_id = c.id and k.kind = cast(:kind as varchar)))
             order by count(*) desc
             limit :limit""", nativeQuery = true)
-    List<MapCafeView> findMapCafes(@Param("limit") int limit);
+    List<MapCafeView> findMapCafes(@Param("kind") String kind, @Param("city") String city, @Param("limit") int limit);
 
     interface MapCafeView {
         String getName();

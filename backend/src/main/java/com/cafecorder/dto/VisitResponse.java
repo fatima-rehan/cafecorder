@@ -1,6 +1,7 @@
 package com.cafecorder.dto;
 
 import com.cafecorder.model.Cafe;
+import com.cafecorder.model.CafeKind;
 import com.cafecorder.model.NoiseLevel;
 import com.cafecorder.model.Seating;
 import com.cafecorder.model.StudyCafe;
@@ -33,20 +34,28 @@ public record VisitResponse(
         String city,
         // null when the address wasn't found
         Double latitude,
-        Double longitude
+        Double longitude,
+        List<CafeKind> kinds,
+        boolean showName
 ) {
     public static VisitResponse from(Cafe cafe) {
         List<ExtraItem> extras = ExtraItem.from(cafe.getExtras());
+        List<CafeKind> kinds = sortedKinds(cafe);
         if (cafe instanceof StudyCafe s) {
             return new VisitResponse(s.getId(), s.getName(), s.getNeighbourhood(), s.getVisitDate(), s.getOrder(),
                     s.getPrice(), s.getRating(), true,
                     s.getHasWifi(), s.getHasOutlets(), s.getSeating(), s.getLaptopPolicy(), s.getNoiseLevel(),
                     s.getPhotoUrl(), s.isShared(), extras, s.getTotal(),
-                    s.getAddress(), s.getCity(), s.getLatitude(), s.getLongitude());
+                    s.getAddress(), s.getCity(), s.getLatitude(), s.getLongitude(), kinds, s.isShowName());
         }
         return new VisitResponse(cafe.getId(), cafe.getName(), cafe.getNeighbourhood(), cafe.getVisitDate(),
                 cafe.getOrder(), cafe.getPrice(), cafe.getRating(), false,
                 null, null, null, null, null, cafe.getPhotoUrl(), cafe.isShared(), extras, cafe.getTotal(),
-                cafe.getAddress(), cafe.getCity(), cafe.getLatitude(), cafe.getLongitude());
+                cafe.getAddress(), cafe.getCity(), cafe.getLatitude(), cafe.getLongitude(), kinds, cafe.isShowName());
+    }
+
+    // in enum order, so the JSON doesn't shuffle between requests (the entity holds a HashSet)
+    static List<CafeKind> sortedKinds(Cafe cafe) {
+        return cafe.getKinds().stream().sorted().toList();
     }
 }

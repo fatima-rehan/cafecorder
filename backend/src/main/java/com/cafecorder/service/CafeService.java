@@ -6,11 +6,13 @@ import com.cafecorder.dto.VisitResponse;
 import com.cafecorder.dto.VisitStats;
 import com.cafecorder.exception.VisitNotFoundException;
 import com.cafecorder.model.Cafe;
+import com.cafecorder.model.CafeKind;
 import com.cafecorder.model.Extra;
 import com.cafecorder.model.StudyCafe;
 import com.cafecorder.repository.CafeRepository;
 import com.cafecorder.repository.UserRepository;
 import com.cafecorder.service.Geocoder.Coordinates;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,10 +37,20 @@ public class CafeService {
         this.geocoder = geocoder;
     }
 
-    public List<VisitResponse> list(Long userId, String neighbourhood, SortOption sort) {
-        List<Cafe> cafes = (neighbourhood == null || neighbourhood.isBlank())
-                ? repository.findByUserId(userId, sort.toSort())
-                : repository.findByUserIdAndNeighbourhoodIgnoreCase(userId, neighbourhood.trim(), sort.toSort());
+    // neighbourhood and kind are both optional
+    public List<VisitResponse> list(Long userId, String neighbourhood, CafeKind kind, SortOption sort) {
+        String area = trimToNull(neighbourhood);
+        Sort order = sort.toSort();
+        List<Cafe> cafes;
+        if (kind == null) {
+            cafes = area == null
+                    ? repository.findByUserId(userId, order)
+                    : repository.findByUserIdAndNeighbourhoodIgnoreCase(userId, area, order);
+        } else {
+            cafes = area == null
+                    ? repository.findByUserIdAndKindsContaining(userId, kind, order)
+                    : repository.findByUserIdAndNeighbourhoodIgnoreCaseAndKindsContaining(userId, area, kind, order);
+        }
         return cafes.stream().map(VisitResponse::from).toList();
     }
 
@@ -102,7 +114,9 @@ public class CafeService {
         cafe.setUser(users.getReferenceById(userId));
         cafe.setPhotoUrl(blankToNull(r.photoUrl()));
         cafe.setShared(r.isShareable());
+        cafe.setShowName(r.nameShown());
         cafe.setExtras(toExtras(r));
+        cafe.setKinds(r.kindsOrEmpty());
         return cafe;
     }
 
@@ -129,7 +143,9 @@ public class CafeService {
         cafe.setRating(r.rating());
         cafe.setPhotoUrl(blankToNull(r.photoUrl()));
         cafe.setShared(r.isShareable());
+        cafe.setShowName(r.nameShown());
         cafe.setExtras(toExtras(r));
+        cafe.setKinds(r.kindsOrEmpty());
     }
 
     // Coordinates picked in the app win. Otherwise only a new or changed address is geocoded;

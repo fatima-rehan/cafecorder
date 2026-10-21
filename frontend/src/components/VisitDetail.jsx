@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { photoFor } from '../drinkArt.js'
-import { formatDate, money } from '../format.js'
+import { formatDate, formatPlace, money } from '../format.js'
+import KindTags from './KindTags.jsx'
 import Rating from './Rating.jsx'
 import StudyChips from './StudyChips.jsx'
 
@@ -27,7 +28,7 @@ export default function VisitDetail({ visit, onEdit, onDelete, onClose }) {
           <header className="card-head">
             <div>
               <h2>{visit.name}</h2>
-              <p className="muted">{[visit.neighbourhood, visit.city].filter(Boolean).join(', ')} · {formatDate(visit.visitDate)}</p>
+              <p className="muted">{formatPlace(visit)} · {formatDate(visit.visitDate)}</p>
               {visit.address && (
                 <p className="muted detail-address">
                   {visit.latitude != null ? (
@@ -51,8 +52,10 @@ export default function VisitDetail({ visit, onEdit, onDelete, onClose }) {
             <p className="order">{visit.order}</p>
           )}
           <Rating value={visit.rating} />
+          <KindTags kinds={visit.kinds} />
           {visit.author && <p className="muted byline">Shared by {visit.author}</p>}
           {editable && visit.shared === false && <p className="muted byline">Private: only you can see this visit</p>}
+          {editable && visit.shared !== false && visit.showName === false && <p className="muted byline">Shared without your name</p>}
           {/* feed items only say whether it was a study session, not the details */}
           {visit.studySpot && visit.seating && <StudyChips visit={visit} />}
           {visit.studySpot && !visit.seating && <span className="study-tag">Study spot</span>}

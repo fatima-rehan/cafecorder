@@ -12,8 +12,9 @@ Visit @ https://cafecorder.vercel.app/
 - **Extras:** add anything else you ordered, like a pastry on the side, each with its own price. Totals include them.
 - **Photos:** upload a photo, then drag and zoom to frame it. It's cropped and resized in the browser before upload.
 - **Explore:** a public feed of shared visits, a leaderboard of the top-rated cafes, and a map of shared cafes with your location.
+- **Types:** tag a visit as Coffee, Matcha, Tea house or Yemeni (or several) and filter Explore and your own logbook by type.
 - **Map:** add an address and the cafe gets pinned, on the public map and on your own map in My visits (private visits included, only you see those). Addresses are geocoded once with OpenStreetMap's Nominatim and the map uses Leaflet with OpenStreetMap tiles.
-- **Accounts:** sign up and log in. Every visit is private to its owner unless shared.
+- **Accounts:** sign up and log in. Every visit is private to its owner unless shared, and a shared visit can leave your name off.
 
 ## Tech stack
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../api.js'
+import { KINDS, kindLabel } from '../kinds.js'
 import CafeMap from './CafeMap.jsx'
 import GalleryGrid from './GalleryGrid.jsx'
 import StatsBar from './StatsBar.jsx'
@@ -57,6 +58,7 @@ export default function MyVisits({ user, composing, onComposeDone }) {
   const [stats, setStats] = useState(null)
   const [neighbourhoods, setNeighbourhoods] = useState([])
   const [neighbourhood, setNeighbourhood] = useState('')
+  const [kind, setKind] = useState('')
   const [sort, setSort] = useState('RECENT')
   const [view, setView] = useState(savedView)
   const [editing, setEditing] = useState(null) // null = closed, {} = new visit, a visit = editing it
@@ -68,7 +70,7 @@ export default function MyVisits({ user, composing, onComposeDone }) {
   const load = useCallback(async () => {
     try {
       const [list, s, hoods] = await Promise.all([
-        api.visits.list(neighbourhood, sort),
+        api.visits.list(neighbourhood, kind, sort),
         api.visits.stats(),
         api.visits.neighbourhoods(),
       ])
@@ -82,7 +84,7 @@ export default function MyVisits({ user, composing, onComposeDone }) {
     } finally {
       setLoading(false)
     }
-  }, [neighbourhood, sort])
+  }, [neighbourhood, kind, sort])
 
   useEffect(() => {
     load()
@@ -137,10 +139,16 @@ export default function MyVisits({ user, composing, onComposeDone }) {
       <StatsBar stats={stats} />
 
       <section className="controls">
-        <select value={neighbourhood} onChange={(e) => setNeighbourhood(e.target.value)} aria-label="Area">
-          <option value="">All areas</option>
-          {neighbourhoods.map((n) => <option key={n} value={n}>{n}</option>)}
-        </select>
+        <div className="control-group">
+          <select value={neighbourhood} onChange={(e) => setNeighbourhood(e.target.value)} aria-label="Area">
+            <option value="">All areas</option>
+            {neighbourhoods.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Type of place">
+            <option value="">All types</option>
+            {KINDS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
+          </select>
+        </div>
         <div className="control-group">
           <div className="segmented" role="group" aria-label="Sort">
             {SORTS.map((s) => (
@@ -163,8 +171,17 @@ export default function MyVisits({ user, composing, onComposeDone }) {
 
       {!loading && !error && visits.length === 0 && (
         <div className="empty">
-          <p>No visits yet{neighbourhood && ` in ${neighbourhood}`}.</p>
-          <button className="btn btn-primary" onClick={() => setEditing({})}>Log your first cup</button>
+          {neighbourhood || kind ? (
+            <>
+              <p>No {kind ? `${kindLabel(kind).toLowerCase()} ` : ''}visits{neighbourhood && ` in ${neighbourhood}`} yet.</p>
+              <button className="btn btn-outline" onClick={() => { setNeighbourhood(''); setKind('') }}>Clear filters</button>
+            </>
+          ) : (
+            <>
+              <p>No visits yet.</p>
+              <button className="btn btn-primary" onClick={() => setEditing({})}>Log your first cup</button>
+            </>
+          )}
         </div>
       )}
 

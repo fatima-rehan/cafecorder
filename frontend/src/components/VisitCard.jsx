@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { photoFor } from '../drinkArt.js'
-import { formatDate, money } from '../format.js'
+import { formatDate, formatPlace, money } from '../format.js'
+import KindTags from './KindTags.jsx'
 import Rating from './Rating.jsx'
 import StudyChips from './StudyChips.jsx'
 
@@ -19,7 +20,7 @@ export default function VisitCard({ visit, onOpen, onEdit, onDelete }) {
           <div>
             <h3>{visit.name}</h3>
             <p className="muted">
-              {[visit.neighbourhood, visit.city].filter(Boolean).join(', ')} · {formatDate(visit.visitDate)}
+              {formatPlace(visit)} · {formatDate(visit.visitDate)}
               {visit.shared === false && <span className="private-tag">Private</span>}
             </p>
           </div>
@@ -28,6 +29,7 @@ export default function VisitCard({ visit, onOpen, onEdit, onDelete }) {
 
         <p className="order">{[visit.order, ...(visit.extras ?? []).map((x) => x.name)].join(' + ')}</p>
         <Rating value={visit.rating} />
+        <KindTags kinds={visit.kinds} />
         {visit.studySpot && <StudyChips visit={visit} />}
 
         <footer className="card-actions">

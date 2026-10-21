@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { money } from '../format.js'
+import { KINDS } from '../kinds.js'
 import { searchAddresses, searchCities } from '../places.js'
 import Autocomplete from './Autocomplete.jsx'
 import PhotoAdjuster from './PhotoAdjuster.jsx'
@@ -21,11 +22,13 @@ const EMPTY = {
   noiseLevel: 'MODERATE',
   photoUrl: '',
   shared: true,
+  showName: true,
   extras: [], // [{ name, price }] for anything besides the main order
   address: '',
   city: '',
   latitude: null,
   longitude: null,
+  kinds: [],
 }
 
 // API response -> form fields (studySpot comes back, studySession goes out)
@@ -45,11 +48,13 @@ function fromVisit(v) {
     noiseLevel: v.noiseLevel ?? EMPTY.noiseLevel,
     photoUrl: v.photoUrl ?? '',
     shared: v.shared !== false,
+    showName: v.showName !== false,
     extras: (v.extras ?? []).map((x) => ({ name: x.name, price: String(x.price) })),
     address: v.address ?? '',
     city: v.city ?? '',
     latitude: v.latitude ?? null,
     longitude: v.longitude ?? null,
+    kinds: v.kinds ?? [],
   }
 }
 
@@ -123,6 +128,9 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
     setForm((f) => ({ ...f, extras: f.extras.map((x, j) => (j === i ? { ...x, [field]: e.target.value } : x)) }))
   const addExtra = () => setForm((f) => ({ ...f, extras: [...f.extras, { name: '', price: '' }] }))
   const removeExtra = (i) => setForm((f) => ({ ...f, extras: f.extras.filter((_, j) => j !== i) }))
+
+  const toggleKind = (kind) =>
+    setForm((f) => ({ ...f, kinds: f.kinds.includes(kind) ? f.kinds.filter((k) => k !== kind) : [...f.kinds, kind] }))
 
   const total = [form.price, ...form.extras.map((x) => x.price)].reduce((sum, p) => sum + (Number(p) || 0), 0)
 
@@ -269,6 +277,24 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
           </label>
         </div>
 
+        <div className="kind-field">
+          <span id="kind-label">Type of place <span className="hint">Optional, pick any.</span></span>
+          <div className="kind-picker" role="group" aria-labelledby="kind-label">
+            {KINDS.map((k) => (
+              <button
+                type="button"
+                key={k.value}
+                className={form.kinds.includes(k.value) ? 'kind-chip on' : 'kind-chip'}
+                aria-pressed={form.kinds.includes(k.value)}
+                onClick={() => toggleKind(k.value)}
+              >
+                {k.label}
+              </button>
+            ))}
+          </div>
+          {fieldError('kinds')}
+        </div>
+
         <div className="order-row">
           <label>
             What you ordered
@@ -371,6 +397,15 @@ export default function VisitForm({ visit, neighbourhoods, onSave, onClose }) {
             <span className="hint">Others see the photo, cafe, order, price and rating.</span>
           </span>
         </label>
+        {form.shared && (
+          <label className="toggle share-toggle name-toggle">
+            <input type="checkbox" checked={form.showName} onChange={set('showName')} />
+            <span>
+              Show my name
+              <span className="hint">Turn off to post without your name.</span>
+            </span>
+          </label>
+        )}
 
         {message && <p className="form-error" role="alert">{message}</p>}
 

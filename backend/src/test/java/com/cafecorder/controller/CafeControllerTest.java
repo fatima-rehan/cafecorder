@@ -5,6 +5,7 @@ import com.cafecorder.dto.ExtraItem;
 import com.cafecorder.dto.SortOption;
 import com.cafecorder.dto.VisitResponse;
 import com.cafecorder.exception.VisitNotFoundException;
+import com.cafecorder.model.CafeKind;
 import com.cafecorder.model.NoiseLevel;
 import com.cafecorder.model.Seating;
 import com.cafecorder.service.CafeService;
@@ -50,7 +51,7 @@ class CafeControllerTest {
             LocalDate.of(2026, 9, 1), "Oat flat white", new BigDecimal("5.75"), 5, true,
             true, true, Seating.GOOD, "No restrictions", NoiseLevel.MODERATE, null, true,
             List.of(new ExtraItem("Almond croissant", new BigDecimal("4.25"))), new BigDecimal("10.00"),
-            "1 Queen St E", "Toronto", 43.65, -79.38);
+            "1 Queen St E", "Toronto", 43.65, -79.38, List.of(CafeKind.MATCHA), true);
 
     @Test
     void visitsNeedAToken() throws Exception {
@@ -60,10 +61,12 @@ class CafeControllerTest {
 
     @Test
     void listPassesUserFilterAndSortToTheService() throws Exception {
-        when(service.list(1L, "Leslieville", SortOption.RATING)).thenReturn(List.of(pilot));
+        when(service.list(1L, "Leslieville", CafeKind.MATCHA, SortOption.RATING)).thenReturn(List.of(pilot));
 
-        mvc.perform(get("/api/visits").with(user1()).param("neighbourhood", "Leslieville").param("sort", "RATING"))
+        mvc.perform(get("/api/visits").with(user1()).param("neighbourhood", "Leslieville")
+                        .param("kind", "MATCHA").param("sort", "RATING"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].kinds[0]").value("MATCHA"))
                 .andExpect(jsonPath("$[0].name").value("Pilot Coffee"))
                 .andExpect(jsonPath("$[0].visitDate").value("2026-09-01"))
                 .andExpect(jsonPath("$[0].price").value(5.75))
@@ -75,6 +78,17 @@ class CafeControllerTest {
     @Test
     void unknownSortIs400() throws Exception {
         mvc.perform(get("/api/visits").with(user1()).param("sort", "CHEAPEST"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void unknownKindIs400() throws Exception {
+        mvc.perform(get("/api/visits").with(user1()).param("kind", "BUBBLE_TEA"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/visits").with(user1()).contentType(MediaType.APPLICATION_JSON).content("""
+                        {"name":"Sam James","neighbourhood":"Harbord","visitDate":"2026-09-01","order":"Cortado",
+                         "price":4.5,"rating":4,"kinds":["BUBBLE_TEA"]}"""))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(service);
     }

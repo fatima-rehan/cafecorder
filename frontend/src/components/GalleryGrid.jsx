@@ -1,4 +1,5 @@
 import { photoFor } from '../drinkArt.js'
+import { formatPlace } from '../format.js'
 
 export default function GalleryGrid({ visits, onOpen, showAuthor = false }) {
   return (
@@ -12,7 +13,7 @@ export default function GalleryGrid({ visits, onOpen, showAuthor = false }) {
           </span>
           <span className="tile-caption">
             <strong>{v.name}</strong>
-            <span>{showAuthor ? `${v.neighbourhood} · ${v.author}` : v.neighbourhood}</span>
+            <span>{showAuthor && v.author ? `${formatPlace(v)} · ${v.author}` : formatPlace(v)}</span>
           </span>
         </button>
       ))}

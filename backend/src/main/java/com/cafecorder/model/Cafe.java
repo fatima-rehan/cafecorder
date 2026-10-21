@@ -6,7 +6,10 @@ import org.hibernate.annotations.BatchSize;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /*
  * One cafe visit, same idea as the original Cafe class.
@@ -69,12 +72,23 @@ public class Cafe {
     @Column(nullable = false)
     private boolean shared = true;
 
+    // false hides your name on the public feed
+    @Column(nullable = false)
+    private boolean showName = true;
+
     // Loaded lazily; @BatchSize loads the extras for up to 50 visits in one query instead of one per visit
     @ElementCollection
     @CollectionTable(name = "visit_extras", joinColumns = @JoinColumn(name = "visit_id"))
     @OrderColumn(name = "item_index")
     @BatchSize(size = 50)
     private List<Extra> extras = new ArrayList<>();
+
+    @ElementCollection
+    @CollectionTable(name = "visit_kinds", joinColumns = @JoinColumn(name = "visit_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "kind", length = 20)
+    @BatchSize(size = 50)
+    private Set<CafeKind> kinds = new HashSet<>();
 
     protected Cafe() {
         // JPA needs a no-arg constructor
@@ -107,7 +121,9 @@ public class Cafe {
     public AppUser getUser() { return user; }
     public String getPhotoUrl() { return photoUrl; }
     public boolean isShared() { return shared; }
+    public boolean isShowName() { return showName; }
     public List<Extra> getExtras() { return extras; }
+    public Set<CafeKind> getKinds() { return kinds; }
     public String getAddress() { return address; }
     public String getCity() { return city; }
     public Double getLatitude() { return latitude; }
@@ -127,6 +143,7 @@ public class Cafe {
     public void setUser(AppUser user) { this.user = user; }
     public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
     public void setShared(boolean shared) { this.shared = shared; }
+    public void setShowName(boolean showName) { this.showName = showName; }
 
     // set together so the coordinates always belong to the address
     public void setLocation(String address, String city, Double latitude, Double longitude) {
@@ -140,6 +157,11 @@ public class Cafe {
     public void setExtras(List<Extra> extras) {
         this.extras.clear();
         this.extras.addAll(extras);
+    }
+
+    public void setKinds(Collection<CafeKind> kinds) {
+        this.kinds.clear();
+        this.kinds.addAll(kinds);
     }
 
     @Override

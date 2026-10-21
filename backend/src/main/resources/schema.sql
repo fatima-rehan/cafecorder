@@ -35,6 +35,8 @@ CREATE INDEX IF NOT EXISTS idx_cafe_visits_user ON cafe_visits (user_id);
 ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS photo_url TEXT;
 ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS shared BOOLEAN NOT NULL DEFAULT TRUE;
 CREATE INDEX IF NOT EXISTS idx_cafe_visits_feed ON cafe_visits (shared, visit_date DESC);
+-- false posts the visit without your name on it
+ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS show_name BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- Where the cafe is. Coordinates come from geocoding the address once, when it's saved.
 ALTER TABLE cafe_visits ADD COLUMN IF NOT EXISTS address VARCHAR(200);
@@ -51,9 +53,17 @@ CREATE TABLE IF NOT EXISTS visit_extras (
     PRIMARY KEY (visit_id, item_index)
 );
 
+-- Tags like MATCHA or YEMENI (see CafeKind), for filtering. One visit, any number of kinds.
+CREATE TABLE IF NOT EXISTS visit_kinds (
+    visit_id BIGINT      NOT NULL REFERENCES cafe_visits (id) ON DELETE CASCADE,
+    kind     VARCHAR(20) NOT NULL,
+    PRIMARY KEY (visit_id, kind)
+);
+
 -- Row level security with no policies: Supabase's public Data API (anon/authenticated roles) can't
 -- read or write these tables. The backend connects as the table owner, which RLS doesn't apply to.
 -- Any new table needs a line here too.
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cafe_visits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE visit_extras ENABLE ROW LEVEL SECURITY;
+ALTER TABLE visit_kinds ENABLE ROW LEVEL SECURITY;

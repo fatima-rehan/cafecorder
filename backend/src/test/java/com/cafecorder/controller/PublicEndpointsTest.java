@@ -8,6 +8,7 @@ import com.cafecorder.dto.FeedDtos.MapCafe;
 import com.cafecorder.dto.FeedDtos.TopCafe;
 import com.cafecorder.exception.EmailTakenException;
 import com.cafecorder.service.AuthService;
+import com.cafecorder.model.CafeKind;
 import com.cafecorder.service.FeedService;
 import com.cafecorder.service.FeedService.FeedSort;
 import org.junit.jupiter.api.Test;
@@ -52,9 +53,9 @@ class PublicEndpointsTest {
 
     @Test
     void feedPhotosAreOpenToEveryoneAndShowPriceButNoEmail() throws Exception {
-        when(feed.photos(FeedSort.TOP, 0)).thenReturn(List.of(new FeedItem(3L, "18Feet", "Queen West",
+        when(feed.photos(FeedSort.TOP, null, null, 0)).thenReturn(List.of(new FeedItem(3L, "18Feet", "Queen West",
                 LocalDate.of(2026, 9, 26), "Dalgona matcha", new BigDecimal("6.50"), List.of(),
-                new BigDecimal("6.50"), 5, null, true, "Fatima", null, null)));
+                new BigDecimal("6.50"), 5, null, true, "Fatima", null, null, List.of(CafeKind.MATCHA))));
 
         mvc.perform(get("/api/feed/photos").param("sort", "TOP"))
                 .andExpect(status().isOk())
@@ -73,27 +74,53 @@ class PublicEndpointsTest {
 
     @Test
     void guestsCanPageThroughOlderPosts() throws Exception {
-        when(feed.photos(FeedSort.RECENT, 1)).thenReturn(List.of());
+        when(feed.photos(FeedSort.RECENT, null, null, 1)).thenReturn(List.of());
 
         mvc.perform(get("/api/feed/photos").param("page", "1"))
                 .andExpect(status().isOk());
 
-        verify(feed).photos(FeedSort.RECENT, 1);
+        verify(feed).photos(FeedSort.RECENT, null, null, 1);
+    }
+
+    @Test
+    void guestsCanFilterEveryTabByKindAndCity() throws Exception {
+        when(feed.photos(FeedSort.RECENT, CafeKind.YEMENI, "Dubai", 0)).thenReturn(List.of());
+        when(feed.topCafes(CafeKind.YEMENI, "Dubai")).thenReturn(List.of());
+        when(feed.mapCafes(CafeKind.YEMENI, "Dubai")).thenReturn(List.of());
+
+        for (String tab : List.of("photos", "top-cafes", "map")) {
+            mvc.perform(get("/api/feed/" + tab).param("kind", "YEMENI").param("city", "Dubai"))
+                    .andExpect(status().isOk());
+        }
+
+        verify(feed).photos(FeedSort.RECENT, CafeKind.YEMENI, "Dubai", 0);
+        verify(feed).topCafes(CafeKind.YEMENI, "Dubai");
+        verify(feed).mapCafes(CafeKind.YEMENI, "Dubai");
+    }
+
+    @Test
+    void guestsCanListTheCitiesForTheFilter() throws Exception {
+        when(feed.cities()).thenReturn(List.of("Dubai", "Toronto"));
+
+        mvc.perform(get("/api/feed/cities"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[1]").value("Toronto"));
     }
 
     @Test
     void topCafesAreOpenToEveryone() throws Exception {
-        when(feed.topCafes()).thenReturn(List.of(new TopCafe("18Feet", "Queen West", 4.8, 5, null)));
+        when(feed.topCafes(null, null)).thenReturn(List.of(new TopCafe("18Feet", "Queen West", "Toronto", 4.8, 5, null)));
 
         mvc.perform(get("/api/feed/top-cafes"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].city").value("Toronto"))
                 .andExpect(jsonPath("$[0].averageRating").value(4.8))
                 .andExpect(jsonPath("$[0].visits").value(5));
     }
 
     @Test
     void anExpiredTokenLeftInTheBrowserDoesNotBreakTheFeed() throws Exception {
-        when(feed.mapCafes()).thenReturn(List.of());
+        when(feed.mapCafes(null, null)).thenReturn(List.of());
 
         mvc.perform(get("/api/feed/map").header("Authorization", "Bearer expired.or.garbage"))
                 .andExpect(status().isOk());
@@ -104,7 +131,7 @@ class PublicEndpointsTest {
 
     @Test
     void mapPinsAreOpenToEveryone() throws Exception {
-        when(feed.mapCafes()).thenReturn(List.of(
+        when(feed.mapCafes(null, null)).thenReturn(List.of(
                 new MapCafe("18Feet", "1 Queen St W, Toronto", "Toronto", 43.65, -79.38, 3, 4.7, null)));
 
         mvc.perform(get("/api/feed/map"))

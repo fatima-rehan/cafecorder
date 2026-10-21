@@ -65,11 +65,7 @@ export const api = {
     me: () => request('/auth/me'),
   },
   visits: {
-    list: (neighbourhood, sort) => {
-      const params = new URLSearchParams({ sort })
-      if (neighbourhood) params.set('neighbourhood', neighbourhood)
-      return request(`/visits?${params}`)
-    },
+    list: (neighbourhood, kind, sort) => request(`/visits?${query({ sort, neighbourhood, kind })}`),
     stats: () => request('/visits/stats'),
     neighbourhoods: () => request('/visits/neighbourhoods'),
     create: (visit) => request('/visits', { method: 'POST', body: visit }),
@@ -77,8 +73,18 @@ export const api = {
     remove: (id) => request(`/visits/${id}`, { method: 'DELETE' }),
   },
   feed: {
-    photos: (sort, page = 0) => request(`/feed/photos?sort=${sort}&page=${page}`, { open: true }),
-    topCafes: () => request('/feed/top-cafes', { open: true }),
-    map: () => request('/feed/map', { open: true }),
+    photos: (sort, kind, city, page = 0) => request(`/feed/photos?${query({ sort, kind, city, page })}`, { open: true }),
+    topCafes: (kind, city) => request(`/feed/top-cafes?${query({ kind, city })}`, { open: true }),
+    map: (kind, city) => request(`/feed/map?${query({ kind, city })}`, { open: true }),
+    cities: () => request('/feed/cities', { open: true }),
   },
+}
+
+// query string without the empty filters, so "All" sends no kind at all
+function query(params) {
+  const q = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== '' && value != null) q.set(key, value)
+  }
+  return q
 }

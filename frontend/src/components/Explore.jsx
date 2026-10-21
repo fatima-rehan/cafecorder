@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
 import { photoFor } from '../drinkArt.js'
+import { formatPlace } from '../format.js'
+import { KINDS, kindLabel } from '../kinds.js'
 import CafeMap from './CafeMap.jsx'
 import GalleryGrid from './GalleryGrid.jsx'
 import Rating from './Rating.jsx'
@@ -25,8 +27,17 @@ const PAGE_SIZE = 30
 export default function Explore({ signedIn, onSignUp }) {
   const [tab, setTab] = useState('top')
   const [photoSort, setPhotoSort] = useState('RECENT')
-  const photoSortRef = useRef(photoSort)
-  photoSortRef.current = photoSort
+  const [kind, setKind] = useState('') // '' = all types
+  const [city, setCity] = useState('') // '' = all cities
+  const [cities, setCities] = useState([])
+  const filters = `${kind}|${city}`
+  // for the empty messages: "No matcha spots in Dubai yet"
+  const spots = kind ? `${kindLabel(kind).toLowerCase()} spots` : 'cafes'
+  const inCity = city ? ` in ${city}` : ''
+  // what the photo list currently shows, so a late "Load more" for an old filter is ignored
+  const photoQuery = `${photoSort}|${filters}`
+  const photoQueryRef = useRef(photoQuery)
+  photoQueryRef.current = photoQuery
   const [topCafes, setTopCafes] = useState(null)
   const [photos, setPhotos] = useState(null)
   const [photoPage, setPhotoPage] = useState(0)
@@ -36,29 +47,38 @@ export default function Explore({ signedIn, onSignUp }) {
   const [viewing, setViewing] = useState(null)
   const [error, setError] = useState('')
 
+  // the city filter only matters once there's more than one city to pick from
   useEffect(() => {
-    api.feed.topCafes().then(setTopCafes).catch(() => setError(FEED_ERROR))
+    api.feed.cities().then(setCities).catch(() => setCities([]))
   }, [])
 
-  // a new sort starts over from the first page; stale answers from the old sort are dropped
+  // each effect drops answers that arrive after the filters have changed again
+  useEffect(() => {
+    let current = true
+    setTopCafes(null)
+    api.feed.topCafes(kind, city).then((cafes) => current && setTopCafes(cafes)).catch(() => current && setError(FEED_ERROR))
+    return () => { current = false }
+  }, [kind, city])
+
+  // a new sort or filter starts over from the first page
   useEffect(() => {
     let current = true
     setPhotos(null)
-    api.feed.photos(photoSort).then((page) => {
+    api.feed.photos(photoSort, kind, city).then((page) => {
       if (!current) return
       setPhotos(page)
       setPhotoPage(0)
       setMorePhotos(page.length === PAGE_SIZE)
     }).catch(() => current && setError(FEED_ERROR))
     return () => { current = false }
-  }, [photoSort])
+  }, [photoSort, kind, city])
 
   async function loadMorePhotos() {
-    const sort = photoSort
+    const asked = photoQuery
     setLoadingMore(true)
     try {
-      const page = await api.feed.photos(sort, photoPage + 1)
-      if (sort !== photoSortRef.current) return
+      const page = await api.feed.photos(photoSort, kind, city, photoPage + 1)
+      if (asked !== photoQueryRef.current) return
       // skip anything already shown, in case new posts shifted the pages
       setPhotos((shown) => [...shown, ...page.filter((p) => !shown.some((s) => s.id === p.id))])
       setPhotoPage((n) => n + 1)
@@ -70,10 +90,30 @@ export default function Explore({ signedIn, onSignUp }) {
     }
   }
 
-  // only fetched once the map is opened
+  // only fetched once the map is opened, and again when a filter changes
+  // a ref, not state: changing it mustn't re-run the effect (that would cancel the request it just made)
+  const mapFilters = useRef(null) // the filters mapCafes was loaded for
   useEffect(() => {
-    if (tab === 'map' && !mapCafes) api.feed.map().then(setMapCafes).catch(() => setError(FEED_ERROR))
-  }, [tab, mapCafes])
+    if (tab !== 'map' || mapFilters.current === filters) return
+    let current = true
+    let loaded = false
+    mapFilters.current = filters
+    setMapCafes(null)
+    api.feed.map(kind, city).then((cafes) => {
+      if (!current) return
+      loaded = true
+      setMapCafes(cafes)
+    }).catch(() => {
+      if (!current) return
+      mapFilters.current = null // try again next time the map is opened
+      setError(FEED_ERROR)
+    })
+    return () => {
+      current = false
+      // left before it loaded: forget it so it's fetched again
+      if (!loaded && mapFilters.current === filters) mapFilters.current = null
+    }
+  }, [tab, kind, city, filters])
 
   return (
     <>
@@ -97,6 +137,18 @@ export default function Explore({ signedIn, onSignUp }) {
             </button>
           ))}
         </div>
+        <div className="control-group">
+          <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Type of place">
+            <option value="">All types</option>
+            {KINDS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
+          </select>
+          {cities.length > 1 && (
+            <select value={city} onChange={(e) => setCity(e.target.value)} aria-label="City">
+              <option value="">All cities</option>
+              {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+        </div>
         {tab === 'photos' && (
           <div className="segmented" role="group" aria-label="Sort photos">
             {PHOTO_SORTS.map((s) => (
@@ -112,7 +164,9 @@ export default function Explore({ signedIn, onSignUp }) {
 
       {tab === 'top' && topCafes && (
         topCafes.length === 0 ? (
-          <p className="empty">No rated cafes yet. Be the first to share one.</p>
+          <p className="empty">
+            No rated {spots}{inCity} yet. Be the first to share one.
+          </p>
         ) : (
           <ol className="leaderboard">
             {topCafes.map((c, i) => (
@@ -121,7 +175,7 @@ export default function Explore({ signedIn, onSignUp }) {
                 <img className="leader-photo" src={c.coverPhoto || photoFor({ order: '' })} alt="" loading="lazy" />
                 <div className="leader-text">
                   <h3>{c.name}</h3>
-                  <p className="muted">{c.neighbourhood}</p>
+                  <p className="muted">{formatPlace(c)}</p>
                   <div className="leader-score">
                     <Rating value={Math.round(c.averageRating)} />
                     <span className="muted">
@@ -137,7 +191,7 @@ export default function Explore({ signedIn, onSignUp }) {
 
       {tab === 'photos' && photos && (
         photos.length === 0
-          ? <p className="empty">Nothing shared yet.</p>
+          ? <p className="empty">{kind || city ? `No ${spots} shared${inCity} yet.` : 'Nothing shared yet.'}</p>
           : (
             <>
               <GalleryGrid visits={photos} onOpen={setViewing} showAuthor />
@@ -155,7 +209,9 @@ export default function Explore({ signedIn, onSignUp }) {
       {tab === 'map' && (
         <>
           {mapCafes?.length === 0 && (
-            <p className="empty">No cafes on the map yet. Add an address when you log a visit to pin it here.</p>
+            <p className="empty">
+              No {spots} on the map{inCity} yet. Add an address when you log a visit to pin it here.
+            </p>
           )}
           <CafeMap cafes={mapCafes ?? []} />
         </>

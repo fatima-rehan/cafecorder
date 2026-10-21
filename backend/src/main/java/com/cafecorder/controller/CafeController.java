@@ -4,6 +4,7 @@ import com.cafecorder.dto.SortOption;
 import com.cafecorder.dto.VisitRequest;
 import com.cafecorder.dto.VisitResponse;
 import com.cafecorder.dto.VisitStats;
+import com.cafecorder.model.CafeKind;
 import com.cafecorder.service.CafeService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -26,12 +27,13 @@ public class CafeController {
         this.service = service;
     }
 
-    // GET /api/visits?neighbourhood=Leslieville&sort=RATING
+    // GET /api/visits?neighbourhood=Leslieville&kind=MATCHA&sort=RATING
     @GetMapping
     public List<VisitResponse> list(@AuthenticationPrincipal Jwt jwt,
                                     @RequestParam(required = false) String neighbourhood,
+                                    @RequestParam(required = false) CafeKind kind,
                                     @RequestParam(defaultValue = "RECENT") SortOption sort) {
-        return service.list(CurrentUser.id(jwt), neighbourhood, sort);
+        return service.list(CurrentUser.id(jwt), neighbourhood, kind, sort);
     }
 
     @GetMapping("/{id}")

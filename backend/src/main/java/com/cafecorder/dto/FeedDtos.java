@@ -1,6 +1,7 @@
 package com.cafecorder.dto;
 
 import com.cafecorder.model.Cafe;
+import com.cafecorder.model.CafeKind;
 import com.cafecorder.repository.CafeRepository.MapCafeView;
 import com.cafecorder.repository.CafeRepository.TopCafeView;
 
@@ -15,14 +16,18 @@ public final class FeedDtos {
     private FeedDtos() {
     }
 
+    // author is null when the poster chose to hide their name
     public record FeedItem(Long id, String name, String neighbourhood, LocalDate visitDate, String order,
                            BigDecimal price, List<ExtraItem> extras, BigDecimal total,
-                           int rating, String photoUrl, boolean studySpot, String author, String address, String city) {
+                           int rating, String photoUrl, boolean studySpot, String author, String address, String city,
+                           List<CafeKind> kinds) {
         public static FeedItem from(Cafe c) {
-            String author = c.getUser() != null ? c.getUser().getDisplayName() : "A CafeCorder user";
+            String author = !c.isShowName() ? null
+                    : c.getUser() != null ? c.getUser().getDisplayName() : "A CafeCorder user";
             return new FeedItem(c.getId(), c.getName(), c.getNeighbourhood(), c.getVisitDate(), c.getOrder(),
                     c.getPrice(), ExtraItem.from(c.getExtras()), c.getTotal(),
-                    c.getRating(), c.getPhotoUrl(), c.isStudySpot(), author, c.getAddress(), c.getCity());
+                    c.getRating(), c.getPhotoUrl(), c.isStudySpot(), author, c.getAddress(), c.getCity(),
+                    VisitResponse.sortedKinds(c));
         }
     }
 
@@ -38,9 +43,11 @@ public final class FeedDtos {
         }
     }
 
-    public record TopCafe(String name, String neighbourhood, double averageRating, long visits, String coverPhoto) {
+    // city is null when none of the visits had one
+    public record TopCafe(String name, String neighbourhood, String city, double averageRating, long visits,
+                          String coverPhoto) {
         public static TopCafe from(TopCafeView v) {
-            return new TopCafe(v.getName(), v.getNeighbourhood(),
+            return new TopCafe(v.getName(), v.getNeighbourhood(), v.getCity(),
                     v.getAverageRating().setScale(1, RoundingMode.HALF_UP).doubleValue(),
                     v.getVisits(), v.getCoverPhoto());
         }

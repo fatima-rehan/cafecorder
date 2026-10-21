@@ -184,7 +184,6 @@ select:focus, input:focus { outline: 2px solid var(--crema); outline-offset: 1px
 .segmented { display: inline-flex; background: #efe4d6; border-radius: 999px; padding: 3px; }
 .segmented button { border: 0; background: none; padding: 0.45rem 1rem; border-radius: 999px; cursor: pointer; color: var(--muted); white-space: nowrap; }
 .segmented button.active { background: var(--paper); color: var(--espresso); box-shadow: 0 1px 3px rgba(43, 26, 18, 0.12); }
-
 .banner { background: #f7e3dc; color: var(--danger); padding: 0.8rem 1rem; border-radius: 10px; }
 .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
 
@@ -241,6 +240,20 @@ select:focus, input:focus { outline: 2px solid var(--crema); outline-offset: 1px
 .chips li.no { text-decoration: line-through; color: var(--muted); }
 
 .control-group { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+/* type of place: toggles in the form, small labels on cards */
+.kind-field { display: flex; flex-direction: column; gap: 0.4rem; }
+.kind-field .hint { display: inline; margin-left: 0.3rem; }
+.kind-picker { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.kind-chip {
+  font: inherit; font-size: 0.9rem; cursor: pointer; color: var(--espresso);
+  background: var(--paper); border: 1.5px solid var(--line); border-radius: 999px; padding: 0.35rem 0.9rem;
+}
+.kind-chip:hover { border-color: #d8c8b4; }
+.kind-chip.on { background: var(--espresso); border-color: var(--espresso); color: var(--paper); }
+.kind-chip:focus-visible { outline: 2px solid var(--crema); outline-offset: 2px; }
+.kind-tags { list-style: none; padding: 0; margin: 0.4rem 0 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.kind-tags li { background: #f6e6d3; color: var(--roast); border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.8rem; font-weight: 500; }
 
 /* gallery view */
 .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.7rem; }
@@ -513,6 +526,7 @@ select:focus, input:focus { outline: 2px solid var(--crema); outline-offset: 1px
 .dialog label.share-toggle { align-items: flex-start; }
 .share-toggle input { margin-top: 0.2rem; }
 .share-toggle > span { display: flex; flex-direction: column; gap: 0.15rem; }
+.name-toggle { margin-left: 1.6rem; }
 
 /* ---------- form dialog ---------- */
 .overlay {
@@ -588,7 +602,6 @@ select:focus, input:focus { outline: 2px solid var(--crema); outline-offset: 1px
 .map-popup { display: flex; flex-direction: column; gap: 0.2rem; font-family: 'DM Sans', system-ui, sans-serif; }
 .map-popup img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; margin-bottom: 0.3rem; }
 .map-popup strong { font-size: 1rem; color: var(--espresso); }
-.map-popup a { color: var(--roast); font-weight: 500; margin-top: 0.2rem; }
 .map-popup-visits { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.35rem; max-height: 9.5rem; overflow-y: auto; }
 .map-popup-visits button {
   font: inherit; font-size: 0.85rem; text-align: left; color: var(--espresso);

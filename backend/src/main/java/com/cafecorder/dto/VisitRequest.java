@@ -1,5 +1,6 @@
 package com.cafecorder.dto;
 
+import com.cafecorder.model.CafeKind;
 import com.cafecorder.model.NoiseLevel;
 import com.cafecorder.model.Seating;
 import jakarta.validation.Valid;
@@ -8,6 +9,7 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 /*
  * What the frontend sends to create or update a visit. Replaces the old Scanner prompts:
@@ -43,8 +45,20 @@ public record VisitRequest(
         @Size(max = 120) String city,
         // sent when an address was picked from the search suggestions, so the server doesn't look it up again
         @DecimalMin("-90") @DecimalMax("90") Double latitude,
-        @DecimalMin("-180") @DecimalMax("180") Double longitude
+        @DecimalMin("-180") @DecimalMax("180") Double longitude,
+        // optional tags like MATCHA; an unknown name is a 400 from the JSON parser
+        Set<CafeKind> kinds,
+        // null counts as true, like shared
+        Boolean showName
 ) {
+    public boolean nameShown() {
+        return !Boolean.FALSE.equals(showName);
+    }
+
+    public Set<CafeKind> kindsOrEmpty() {
+        return kinds == null ? Set.of() : kinds;
+    }
+
     // a pin needs both halves
     @AssertTrue(message = "latitude and longitude go together")
     public boolean isCoordinatesPaired() {

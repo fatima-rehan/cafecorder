@@ -8,6 +8,7 @@ import com.cafecorder.dto.VisitStats;
 import com.cafecorder.exception.VisitNotFoundException;
 import com.cafecorder.model.AppUser;
 import com.cafecorder.model.Cafe;
+import com.cafecorder.model.CafeKind;
 import com.cafecorder.model.NoiseLevel;
 import com.cafecorder.model.Seating;
 import com.cafecorder.model.StudyCafe;
@@ -19,11 +20,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,12 +55,12 @@ class CafeServiceTest {
 
     private VisitRequest regularVisit() {
         return new VisitRequest("  Sam James  ", " Harbord ", LocalDate.of(2026, 9, 10), "Cortado",
-                new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, false, null, null, null, null, null);
+                new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, false, null, null, null, null, null, null, null);
     }
 
     private VisitRequest visitAt(String address, String city, Double lat, Double lng) {
         return new VisitRequest("Sam James", "Harbord", LocalDate.of(2026, 9, 10), "Cortado",
-                new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, true, null, address, city, lat, lng);
+                new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, true, null, address, city, lat, lng, null, null);
     }
 
     private VisitRequest visitAt(String address) {
@@ -127,14 +130,14 @@ class CafeServiceTest {
     private VisitRequest studyVisit() {
         return new VisitRequest("Sam James", "Harbord", LocalDate.of(2026, 9, 10), "Cortado",
                 new BigDecimal("4.50"), 4, true, true, false, Seating.LIMITED, "Before 5pm", NoiseLevel.QUIET,
-                "https://example.com/cortado.jpg", null, null, null, null, null, null);
+                "https://example.com/cortado.jpg", null, null, null, null, null, null, Set.of(CafeKind.TEA_HOUSE), false);
     }
 
     private VisitRequest visitWithExtras() {
         return new VisitRequest("Sam James", "Harbord", LocalDate.of(2026, 9, 10), "Cortado",
                 new BigDecimal("4.50"), 4, false, null, null, null, null, null, null, true,
                 List.of(new ExtraItem(" Almond croissant ", new BigDecimal("4.25")),
-                        new ExtraItem("Cookie", new BigDecimal("2.10"))), null, null, null, null);
+                        new ExtraItem("Cookie", new BigDecimal("2.10"))), null, null, null, null, null, null);
     }
 
     @Test
@@ -176,6 +179,19 @@ class CafeServiceTest {
         assertThat(result.seating()).isEqualTo(Seating.LIMITED);
         assertThat(result.photoUrl()).isEqualTo("https://example.com/cortado.jpg");
         assertThat(result.shared()).as("shared defaults to true when not sent").isTrue();
+        assertThat(result.kinds()).containsExactly(CafeKind.TEA_HOUSE);
+        assertThat(result.showName()).isFalse();
+    }
+
+    @Test
+    void editingWithoutKindsClearsTheOldOnes() {
+        Cafe existing = new Cafe("Old", "Annex", LocalDate.of(2026, 1, 1), "Tea", BigDecimal.ONE, 2);
+        existing.setKinds(Set.of(CafeKind.MATCHA, CafeKind.YEMENI));
+        when(repository.findByIdAndUserId(5L, ME)).thenReturn(Optional.of(existing));
+
+        VisitResponse result = service.update(ME, 5L, regularVisit());
+
+        assertThat(result.kinds()).isEmpty();
     }
 
     @Test
@@ -190,6 +206,7 @@ class CafeServiceTest {
         assertThat(result.studySpot()).isFalse();
         assertThat(result.seating()).isNull();
         assertThat(result.shared()).isFalse();
+        assertThat(result.showName()).as("the name shows unless you opt out").isTrue();
     }
 
     @Test
@@ -198,11 +215,26 @@ class CafeServiceTest {
         when(repository.findByUserIdAndNeighbourhoodIgnoreCase(ME, "Annex", SortOption.RATING.toSort()))
                 .thenReturn(List.of());
 
-        service.list(ME, "  ", SortOption.RATING);
-        service.list(ME, " Annex ", SortOption.RATING);
+        service.list(ME, "  ", null, SortOption.RATING);
+        service.list(ME, " Annex ", null, SortOption.RATING);
 
         verify(repository).findByUserId(ME, SortOption.RATING.toSort());
         verify(repository).findByUserIdAndNeighbourhoodIgnoreCase(ME, "Annex", SortOption.RATING.toSort());
+    }
+
+    @Test
+    void listFiltersByKindAloneOrTogetherWithTheArea() {
+        Sort recent = SortOption.RECENT.toSort();
+        when(repository.findByUserIdAndKindsContaining(ME, CafeKind.MATCHA, recent)).thenReturn(List.of());
+        when(repository.findByUserIdAndNeighbourhoodIgnoreCaseAndKindsContaining(ME, "Annex", CafeKind.YEMENI, recent))
+                .thenReturn(List.of());
+
+        service.list(ME, null, CafeKind.MATCHA, SortOption.RECENT);
+        service.list(ME, "Annex", CafeKind.YEMENI, SortOption.RECENT);
+
+        verify(repository).findByUserIdAndKindsContaining(ME, CafeKind.MATCHA, recent);
+        verify(repository).findByUserIdAndNeighbourhoodIgnoreCaseAndKindsContaining(ME, "Annex", CafeKind.YEMENI, recent);
+        verify(repository, never()).findByUserId(any(), any());
     }
 
     @Test
