@@ -130,12 +130,23 @@ export default function Explore({ signedIn, onSignUp }) {
       )}
 
       <section className="controls">
-        <div className="segmented" role="group" aria-label="Feed">
-          {TABS.map((t) => (
-            <button key={t.value} className={tab === t.value ? 'active' : ''} onClick={() => setTab(t.value)}>
-              {t.label}
-            </button>
-          ))}
+        <div className="control-group">
+          <div className="segmented" role="group" aria-label="Feed">
+            {TABS.map((t) => (
+              <button key={t.value} className={tab === t.value ? 'active' : ''} onClick={() => setTab(t.value)}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {tab === 'photos' && (
+            <div className="segmented" role="group" aria-label="Sort photos">
+              {PHOTO_SORTS.map((s) => (
+                <button key={s.value} className={photoSort === s.value ? 'active' : ''} onClick={() => setPhotoSort(s.value)}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="control-group">
           <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Type of place">
@@ -149,15 +160,6 @@ export default function Explore({ signedIn, onSignUp }) {
             </select>
           )}
         </div>
-        {tab === 'photos' && (
-          <div className="segmented" role="group" aria-label="Sort photos">
-            {PHOTO_SORTS.map((s) => (
-              <button key={s.value} className={photoSort === s.value ? 'active' : ''} onClick={() => setPhotoSort(s.value)}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
       </section>
 
       {error && <p className="banner">{error}</p>}
