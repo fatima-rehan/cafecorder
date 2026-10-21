@@ -55,6 +55,7 @@ controller  ->  service  ->  repository
 | GET | `/api/feed/photos` | Public feed (`?sort=RECENT\|TOP`) |
 | GET | `/api/feed/top-cafes` | Top-rated cafes |
 | GET | `/api/feed/map` | Shared cafes with coordinates, for the map |
+| GET | `/api/health` | Returns `ok`, for uptime checks |
 
 ## Running locally
 

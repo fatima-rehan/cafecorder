@@ -50,3 +50,10 @@ CREATE TABLE IF NOT EXISTS visit_extras (
     price      NUMERIC(7, 2) NOT NULL CHECK (price >= 0),
     PRIMARY KEY (visit_id, item_index)
 );
+
+-- Row level security with no policies: Supabase's public Data API (anon/authenticated roles) can't
+-- read or write these tables. The backend connects as the table owner, which RLS doesn't apply to.
+-- Any new table needs a line here too.
+ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cafe_visits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE visit_extras ENABLE ROW LEVEL SECURITY;

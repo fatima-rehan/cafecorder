@@ -69,6 +69,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
                         .requestMatchers(PUBLIC_FEED).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 // checks "Authorization: Bearer ..." on every request; missing or bad token = 401

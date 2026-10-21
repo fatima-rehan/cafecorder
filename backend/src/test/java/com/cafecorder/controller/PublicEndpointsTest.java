@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // Sign up, log in and the public feed work without a token; /me doesn't
-@WebMvcTest({AuthController.class, FeedController.class})
+@WebMvcTest({AuthController.class, FeedController.class, HealthController.class})
 @Import(SecurityConfig.class)
 @TestPropertySource(properties = "app.jwt.secret=test-secret-that-is-definitely-32-bytes-long")
 class PublicEndpointsTest {
@@ -61,6 +61,14 @@ class PublicEndpointsTest {
                 .andExpect(jsonPath("$[0].author").value("Fatima"))
                 .andExpect(jsonPath("$[0].price").value(6.50))
                 .andExpect(jsonPath("$[0].email").doesNotExist());
+    }
+
+    @Test
+    void healthCheckIsOpenAndNeverTouchesTheFeed() throws Exception {
+        mvc.perform(get("/api/health"))
+                .andExpect(status().isOk());
+
+        verifyNoInteractions(feed, auth);
     }
 
     @Test
